@@ -33,9 +33,11 @@ def read_clauses_from_file(filename):
     clauses = []
     with open(filename, 'r') as file:
         for line in file:
-            if line.strip() == '0':
+            line = line.strip()
+            if line == '0':  # End of clauses, start of legend
                 break
-            clause = list(map(int, line.strip().split()))
+            # Convert line to a list of integers representing a clause
+            clause = list(map(int, line.split()))
             clauses.append(clause)
     return clauses
 
@@ -53,7 +55,7 @@ def solve_sat_from_file(input_filename, output_filename):
     solution = dp_solve(clauses)
     write_solution_to_file(solution, output_filename)
 
-input_filename = 'input.txt'
-output_filename = 'output.txt'
+input_filename = 'clauses_output.txt'
+output_filename = 'dp_output.txt'
 
 solve_sat_from_file(input_filename, output_filename)
