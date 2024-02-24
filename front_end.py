@@ -37,20 +37,19 @@ def generate_encoded_clauses(triples, num_holes, initial_empty):
             clauses.append(f"-{jump_id} -{peg_c_id}")
     return clauses, encoding_map
 
-def write_clauses_and_key_to_file(clauses, encoding_map, filename):
+def write_clauses_to_file(clauses, filename):
     with open(filename, 'w') as file:
         for clause in clauses:
             file.write(f"{clause}\n")
         file.write("0\n")
-        for item, identifier in encoding_map.items():
-            file.write(f"{identifier} {item}\n")
 
 def main(input_filename, output_filename):
     num_holes, initial_empty, triples = read_game_board(input_filename)
     clauses, encoding_map = generate_encoded_clauses(triples, num_holes, initial_empty)
-    write_clauses_and_key_to_file(clauses, encoding_map, output_filename)
+    write_clauses_to_file(clauses, output_filename)
 
 input_filename = 'game_board_input.txt'
 output_filename = 'clauses_output.txt'
 main(input_filename, output_filename)
+
 
