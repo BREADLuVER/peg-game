@@ -5,44 +5,52 @@ def read_game_board(filename):
         triples = [tuple(map(int, line.strip().split())) for line in file]
     return num_holes, initial_empty, triples
 
-def generate_clauses(num_holes, initial_empty, triples):
+def encode_state_or_action(item, encoding_map, counter):
+    if item not in encoding_map:
+        encoding_map[item] = counter
+        counter += 1
+    return encoding_map[item], counter
+
+def generate_encoded_clauses(triples, num_holes, initial_empty):
+    encoding_map = {}
     clauses = []
-
-    # Starting state: Specify the truth value of Peg(H,1) for each hole H.
-    for hole in range(1, num_holes + 1):
-        if hole == initial_empty:
-            clauses.append(f"-Peg({hole},1)")
+    counter = 1
+    for i in range(1, num_holes + 1):
+        item = f"Peg({i},1)"
+        identifier, counter = encode_state_or_action(item, encoding_map, counter)
+        if i == initial_empty:
+            clauses.append(f"-{identifier}")
         else:
-            clauses.append(f"Peg({hole},1)")
-    
-    # Add other clauses based on the game rules and the triples.
-    # This includes precondition axioms, causal axioms, frame axioms, etc.
+            clauses.append(f"{identifier}")
+    for a, b, c in triples:
+        for t in range(1, num_holes - 1):
+            jump_item = f"Jump({a},{b},{c},{t})"
+            peg_a_item = f"Peg({a},{t})"
+            peg_b_item = f"Peg({b},{t})"
+            peg_c_item = f"Peg({c},{t})"
+            jump_id, counter = encode_state_or_action(jump_item, encoding_map, counter)
+            peg_a_id, counter = encode_state_or_action(peg_a_item, encoding_map, counter)
+            peg_b_id, counter = encode_state_or_action(peg_b_item, encoding_map, counter)
+            peg_c_id, counter = encode_state_or_action(peg_c_item, encoding_map, counter)
+            clauses.append(f"-{jump_id} {peg_a_id}")
+            clauses.append(f"-{jump_id} {peg_b_id}")
+            clauses.append(f"-{jump_id} -{peg_c_id}")
+    return clauses, encoding_map
 
-    return clauses
-
-def write_clauses_to_file(clauses, filename):
+def write_clauses_and_key_to_file(clauses, encoding_map, filename):
     with open(filename, 'w') as file:
         for clause in clauses:
             file.write(f"{clause}\n")
         file.write("0\n")
+        for item, identifier in encoding_map.items():
+            file.write(f"{identifier} {item}\n")
 
 def main(input_filename, output_filename):
     num_holes, initial_empty, triples = read_game_board(input_filename)
-    clauses = generate_clauses(num_holes, initial_empty, triples)
-    write_clauses_to_file(clauses, output_filename)
+    clauses, encoding_map = generate_encoded_clauses(triples, num_holes, initial_empty)
+    write_clauses_and_key_to_file(clauses, encoding_map, output_filename)
 
-def generate_clauses(num_holes, initial_empty, triples):
-    clauses = []
-    # Example starting state clause
-    clauses.append(f"-Peg({initial_empty},1)")  # Initial empty hole
-    # Placeholder for generating other clauses based on triples
-    for a, b, c in triples:
-        # Simplified example to demonstrate adding clauses
-        clauses.append(f"Jump({a},{b},{c},I) => Peg({a},I) ^ Peg({b},I) ^ ~Peg({c},I)")
-    return clauses
-
-
-# Example usage
 input_filename = 'game_board_input.txt'
 output_filename = 'clauses_output.txt'
 main(input_filename, output_filename)
+
