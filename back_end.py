@@ -1,34 +1,41 @@
-def read_dp_solution_and_legend(filename):
+def read_dp_output(filename):
     solution = {}
     legend = {}
-    start_reading_solution = False
+    reading_solution = True  # Start by reading the solution part
     with open(filename, 'r') as file:
         for line in file:
-            line = line.strip()
-            if not line or line == '0':
-                start_reading_solution = True
+            if line.strip() == '0':  # Switch to reading the legend
+                reading_solution = False
                 continue
-            if start_reading_solution:
-                if ' ' in line:
-                    var, val = line.split()
-                    solution[int(var)] = val == 'T'
-                else:
-                    var, description = line.split(maxsplit=1)
-                    legend[int(var)] = description
+            if reading_solution:
+                var, val = line.split()
+                solution[int(var)] = val == 'T'
+            else:
+                var, description = line.split(maxsplit=1)
+                legend[int(var)] = description
     return solution, legend
 
-def generate_moves_from_dp_output(filename):
-    solution, legend = read_dp_solution_and_legend(filename)
-    moves = [legend[var] for var, is_true in solution.items() if is_true and var in legend]
+def interpret_solution(solution, legend):
+    moves = []
+    for var, taken in solution.items():
+        if taken and var in legend and legend[var].startswith("Jump"):
+            moves.append(legend[var])
+    return moves
+
+def generate_moves(dp_output_filename):
+    solution, legend = read_dp_output(dp_output_filename)
+    moves = interpret_solution(solution, legend)
     return moves
 
 def main():
-    filename = 'dp_output.txt'
-    moves = generate_moves_from_dp_output(filename)
+    dp_output_filename = 'dp_output.txt'
+    moves = generate_moves(dp_output_filename)
+    print("Sequence of jumps to solve the peg game:")
     for move in moves:
         print(move)
 
 if __name__ == "__main__":
     main()
+
 
 
