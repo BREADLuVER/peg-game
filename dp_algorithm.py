@@ -29,17 +29,24 @@ def assign(clauses, variable, value):
     new_assignment = [(variable, value)]
     return simplify(clauses, new_assignment)[0]
 
-def read_clauses_from_file(filename):
+def read_clauses_and_legend_from_file(filename):
     clauses = []
+    legend = {}
+    reading_clauses = True
     with open(filename, 'r') as file:
         for line in file:
             line = line.strip()
-            if line == '0':  # End of clauses, start of legend
-                break
-            # Convert line to a list of integers representing a clause
-            clause = list(map(int, line.split()))
-            clauses.append(clause)
-    return clauses
+            if line == '0':  # Switch from reading clauses to reading legend
+                reading_clauses = False
+                continue
+            if reading_clauses:
+                clause = list(map(int, line.split()))
+                clauses.append(clause)
+            else:
+                var, description = line.split(maxsplit=1)
+                legend[int(var)] = description
+    return clauses, legend
+
 
 def write_solution_to_file(solution, filename):
     with open(filename, 'w') as file:
