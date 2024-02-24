@@ -23,7 +23,7 @@ def generate_moves_from_dp_output(filename):
     return moves
 
 def main():
-    filename = 'combined_output.txt'
+    filename = 'dp_output.txt'
     moves = generate_moves_from_dp_output(filename)
     for move in moves:
         print(move)

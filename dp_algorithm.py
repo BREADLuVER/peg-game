@@ -36,7 +36,7 @@ def read_clauses_and_legend_from_file(filename):
     with open(filename, 'r') as file:
         for line in file:
             line = line.strip()
-            if line == '0':  # Switch from reading clauses to reading legend
+            if line == '0':  
                 reading_clauses = False
                 continue
             if reading_clauses:
@@ -47,22 +47,22 @@ def read_clauses_and_legend_from_file(filename):
                 legend[int(var)] = description
     return clauses, legend
 
-
-def write_solution_to_file(solution, filename):
+def write_solution_and_legend_to_file(solution, legend, filename):
     with open(filename, 'w') as file:
         if solution is None:
             file.write('0\n')
         else:
             for var, val in solution:
                 file.write(f"{var} {'T' if val else 'F'}\n")
-            file.write('0\n')
+        file.write('0\n')  
+        for var, desc in legend.items():
+            file.write(f"{var} {desc}\n")
 
 def solve_sat_from_file(input_filename, output_filename):
-    clauses = read_clauses_from_file(input_filename)
+    clauses, legend = read_clauses_and_legend_from_file(input_filename)
     solution = dp_solve(clauses)
-    write_solution_to_file(solution, output_filename)
+    write_solution_and_legend_to_file(solution, legend, output_filename)
 
 input_filename = 'clauses_output.txt'
 output_filename = 'dp_output.txt'
-
 solve_sat_from_file(input_filename, output_filename)
