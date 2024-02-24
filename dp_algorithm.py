@@ -52,3 +52,8 @@ def solve_sat_from_file(input_filename, output_filename):
     clauses = read_clauses_from_file(input_filename)
     solution = dp_solve(clauses)
     write_solution_to_file(solution, output_filename)
+
+input_filename = 'input.txt'
+output_filename = 'output.txt'
+
+solve_sat_from_file(input_filename, output_filename)
