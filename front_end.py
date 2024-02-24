@@ -1,58 +1,73 @@
-def read_game_board(filename):
+class Peg:
+    def __init__(self, hole, time):
+        self.hole = hole
+        self.time = time
+
+class Jump:
+    def __init__(self, start, over, end, time):
+        self.start = start
+        self.over = over
+        self.end = end
+        self.time = time
+
+def read_input(filename):
     with open(filename, 'r') as file:
-        first_line = file.readline().strip().split()
-        num_holes, initial_empty = int(first_line[0]), int(first_line[1])
+        n, _ = map(int, file.readline().strip().split())
         triples = [tuple(map(int, line.strip().split())) for line in file]
-    return num_holes, initial_empty, triples
+    return n, triples
 
-def encode_state_or_action(item, encoding_map, counter):
-    if item not in encoding_map:
-        encoding_map[item] = counter
-        counter += 1
-    return encoding_map[item], counter
+def peg_index(hole, time, n):
+    return (hole - 1) * (n - 1) + time
 
-def generate_encoded_clauses(triples, num_holes, initial_empty):
-    encoding_map = {}
+def jump_index(start, over, end, time, n, triples):
+    base = n * (n - 1)
+    jump_order = [(start, over, end) for start, over, end in triples]
+    return base + jump_order.index((start, over, end)) * (n - 2) + time
+
+def generate_cnf_clauses(n, triples):
     clauses = []
-    counter = 1
-    for i in range(1, num_holes + 1):
-        item = f"Peg({i},1)"
-        identifier, counter = encode_state_or_action(item, encoding_map, counter)
-        if i == initial_empty:
-            clauses.append(f"-{identifier}")
+    for time in range(1, n - 1):
+        for start, over, end in triples:
+            jump_num = jump_index(start, over, end, time, n, triples)
+            preconditions = [
+                peg_index(start, time, n),
+                peg_index(over, time, n),
+                -peg_index(end, time, n)
+            ]
+            causal = [
+                -peg_index(start, time + 1, n),
+                -peg_index(over, time + 1, n),
+                peg_index(end, time + 1, n)
+            ]
+            for pre in preconditions:
+                clauses.append(f"-{jump_num} {pre}")
+            for cause in causal:
+                clauses.append(f"-{jump_num} {cause}")
+    for hole in range(1, n + 1):
+        if hole == 1:
+            clauses.append(f"-{peg_index(hole, 1, n)}")
         else:
-            clauses.append(f"{identifier}")
-    for a, b, c in triples:
-        for t in range(1, num_holes - 1):
-            jump_item = f"Jump({a},{b},{c},{t})"
-            peg_a_item = f"Peg({a},{t})"
-            peg_b_item = f"Peg({b},{t})"
-            peg_c_item = f"Peg({c},{t})"
-            jump_id, counter = encode_state_or_action(jump_item, encoding_map, counter)
-            peg_a_id, counter = encode_state_or_action(peg_a_item, encoding_map, counter)
-            peg_b_id, counter = encode_state_or_action(peg_b_item, encoding_map, counter)
-            peg_c_id, counter = encode_state_or_action(peg_c_item, encoding_map, counter)
-            clauses.append(f"-{jump_id} {peg_a_id}")
-            clauses.append(f"-{jump_id} {peg_b_id}")
-            clauses.append(f"-{jump_id} -{peg_c_id}")
-    return clauses, encoding_map
+            clauses.append(f"{peg_index(hole, 1, n)}")
+    ending_clause = " ".join([str(peg_index(hole, n - 1, n)) for hole in range(1, n + 1)])
+    clauses.append(ending_clause)
+    return clauses
 
-def write_clauses_and_key_to_file(clauses, encoding_map, filename):
-    with open(filename, 'w') as file:
+def print_cnf_clauses_to_file(clauses, filename):
+    with open(filename, 'w') as f:
         for clause in clauses:
-            file.write(f"{clause}\n")
-        file.write("0\n")
-        for item, identifier in encoding_map.items():
-            file.write(f"{identifier} {item}\n")
+            f.write(f"{clause}\n")
+        f.write("0\n")
+        for i in range(1, 29):
+            if i <= 16:
+                f.write(f"{i} Jump({(i-1)//4+1},{((i-1)%4)//2+1},{((i-1)%2)+1},{(i+1)//2})\n")
+            else:
+                f.write(f"{i} Peg({(i-17)//3+1},{(i-17)%3+1})\n")
 
-def main(input_filename, output_filename):
-    num_holes, initial_empty, triples = read_game_board(input_filename)
-    clauses, encoding_map = generate_encoded_clauses(triples, num_holes, initial_empty)
-    write_clauses_and_key_to_file(clauses, encoding_map, output_filename)
+def main():
+    input_filename = 'game_board_input.txt'
+    output_filename = 'clauses_output.txt'
+    n, triples = read_input(input_filename)
+    clauses = generate_cnf_clauses(n, triples)
+    print_cnf_clauses_to_file(clauses, output_filename)
 
-input_filename = 'game_board_input.txt'
-output_filename = 'clauses_output.txt'
-main(input_filename, output_filename)
-
-
-
+main()
