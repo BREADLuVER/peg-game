@@ -137,12 +137,19 @@ def generate_ending_state_clauses(peg_ids, N):
 
     return ending_state_clauses
 
+def read_input(file_path='input.txt'):
+    with open(file_path, 'r') as file:
+        first_line = file.readline().strip().split()
+        N, empty_hole = int(first_line[0]), int(first_line[1])
+        triples = [tuple(map(int, line.strip().split())) for line in file]
+
+    return N, empty_hole, triples
 
 def main_refined_execution():
-    N = 4  # Example configuration
-    # Expanded triples to include both directions of jumps
-    expanded_triples = [(1, 2, 3), (2, 3, 4), (3, 4, 1), (4, 1, 2)] + [(C, B, A) for A, B, C in [(1, 2, 3), (2, 3, 4), (3, 4, 1), (4, 1, 2)]]
-    # Assign IDs to pegs and jumps
+    N, empty_hole, triples = read_input()
+    # expanded triples to include both directions of jumps
+    expanded_triples = triples + [(C, B, A) for A, B, C in triples]
+
     peg_ids, jump_ids = assign_ids(N, expanded_triples)
     
     # Generate refined clauses for direct implications
@@ -153,7 +160,7 @@ def main_refined_execution():
 
     exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump_ids)
     
-    starting_state_clauses = generate_starting_state_clauses(peg_ids, 1, N)
+    starting_state_clauses = generate_starting_state_clauses(peg_ids, empty_hole, N)
     
     # Combine all clauses, now including the starting state
     ending_state_clauses = generate_ending_state_clauses(peg_ids, N)
@@ -164,14 +171,13 @@ def main_refined_execution():
     # Generate the legend for ID to description mapping
     legend = create_legend(peg_ids, jump_ids)
     
-    # Print all clauses for verification
-    for clause in all_clauses:
-        print(clause)
-    
-    # Print the legend
-    print("\nLegend:")
-    for id, desc in sorted(legend.items()):
-        print(f"{id}: {desc}")
+    with open('output.txt', 'w') as file:
+        for clause in all_clauses:
+            file.write(f"{clause}\n")
+        
+        file.write("\nLegend:\n")
+        for id, desc in sorted(legend.items()):
+            file.write(f"{id}: {desc}\n")
 
 main_refined_execution()
 
