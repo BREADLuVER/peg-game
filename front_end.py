@@ -39,8 +39,10 @@ def generate_refined_clauses(N, triples, peg_ids, jump_ids):
                 jump_id = jump_ids.get((A, B, C, time))
                 if jump_id:
                     # Precondition axioms for jumps
-                    clauses.append(f"{jump_id} {peg_ids[(A, time)]} {peg_ids[(B, time)]} -{peg_ids[(C, time)]}")
-                    # Causal effects of jumps
+                    clauses.append(f"-{jump_id} {peg_ids[(A, time)]}")
+                    clauses.append(f"-{jump_id} {peg_ids[(B, time)]}")
+                    clauses.append(f"-{jump_id} -{peg_ids[(C, time)]}")
+
                     clauses.append(f"-{jump_id} -{peg_ids[(A, time + 1)]}")
                     clauses.append(f"-{jump_id} -{peg_ids[(B, time + 1)]}")
                     clauses.append(f"-{jump_id} {peg_ids[(C, time + 1)]}")
@@ -56,6 +58,7 @@ def generate_frame_axioms(N, triples, peg_ids, jump_ids):
             current_peg = peg_ids.get((peg, time))
             next_peg = peg_ids.get((peg, time + 1))
             possible_jumps = []
+            short_jumps = []
 
             # Identify possible jumps affecting the peg's state
             for (A, B, C) in triples:
@@ -67,12 +70,13 @@ def generate_frame_axioms(N, triples, peg_ids, jump_ids):
                     jump_id = jump_ids.get((A, B, C, time))
                     if jump_id:
                         possible_jumps.append(jump_id)
+                        short_jumps.append(jump_id)
                 # Add conditions for peg being jumped over, B, if necessary
 
             # If the peg's state changes, generate the corresponding clause
             if current_peg and next_peg:  # Check if IDs exist for both times
                 # Generate clause for peg disappearing
-                frame_clauses.append(f"{current_peg} -{next_peg} " + " ".join(map(str, possible_jumps)))
+                frame_clauses.append(f"{current_peg} -{next_peg} " + " ".join(map(str, short_jumps)))
                 # Generate clause for peg appearing
                 frame_clauses.append(f"-{current_peg} {next_peg} " + " ".join(map(str, possible_jumps)))
 
