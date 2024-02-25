@@ -41,8 +41,10 @@ def apply_pure_literal_rule(clauses):
 
 def choose_literal(clauses):
     for clause in clauses:
-        for literal in clause:
-            return literal  # Simply return the first literal found
+        if clause:  # Ensure the clause is not empty
+            for literal in clause:
+                return literal
+    return None
 
 def assign(clauses, literal):
     new_clauses = []
@@ -59,41 +61,41 @@ def assign(clauses, literal):
     return new_clauses
 
 def dp_solve(clauses, assignments={}):
-    if not clauses:  # If there are no clauses left, a solution is found
+    # Base case: If there are no clauses left, a solution is found
+    if not clauses:
         return assignments
-    if any(len(clause) == 0 for clause in clauses):  # If there's an empty clause, the problem is unsatisfiable
+
+    # If there's an empty clause, the problem is unsatisfiable
+    if any(len(clause) == 0 for clause in clauses):
         return None
 
-    # Identify unit clauses and apply the unit clause rule
-    unit_literals = find_unit_clauses(clauses)
-    while unit_literals:
-        literal = unit_literals.pop()
-        assignments[abs(literal)] = True if literal > 0 else False
-        clauses = apply_unit_clause(clauses, literal)
-        unit_literals = find_unit_clauses(clauses)
-
-    # Check again after applying unit clauses
-    if not clauses:  # Satisfiable
-        return assignments
-    if any(len(clause) == 0 for clause in clauses):  # Unsatisfiable
-        return None
+    # Unit clause propagation
+    while any(len(clause) == 1 for clause in clauses):
+        unit_clauses = [clause[0] for clause in clauses if len(clause) == 1]
+        for unit in unit_clauses:
+            assignments[abs(unit)] = (unit > 0)
+            # Apply the unit clause to simplify the problem
+            clauses = apply_unit_clause(clauses, unit)
+            # Check for empty clauses again after applying unit clause
+            if any(len(clause) == 0 for clause in clauses):
+                return None
 
     # Choose a literal for branching
     literal = choose_literal(clauses)
-    
-    # Try assigning the literal True
-    new_clauses = assign(clauses, literal)
-    new_assignments = assignments.copy()
-    new_assignments[abs(literal)] = True
-    result = dp_solve(new_clauses, new_assignments)
-    if result is not None:
-        return result  # Satisfiable with literal=True
+    if literal is None:  # Safeguard check
+        return assignments
+    # Recursive case: Try assigning the chosen literal True, then False
+    for val in [True, False]:
+        new_assignments = assignments.copy()
+        new_assignments[abs(literal)] = val
+        new_clauses = assign(clauses, literal if val else -literal)
+        result = dp_solve(new_clauses, new_assignments)
+        if result is not None:
+            return result  # Satisfiable with current assignment
 
-    # If assigning True didn't work, try False
-    new_clauses = assign(clauses, -literal)
-    new_assignments = assignments.copy()
-    new_assignments[abs(literal)] = False
-    return dp_solve(new_clauses, new_assignments)
+    # If neither True nor False leads to a solution, the problem is unsatisfiable
+    return None
+
 
 def find_unit_clauses(clauses):
     """Finds all unit clauses in the current clause list."""
@@ -102,12 +104,14 @@ def find_unit_clauses(clauses):
 def write_solution_and_back_matter_to_file(solution, back_matter, filename):
     with open(filename, 'w') as file:
         if solution is None:
-            file.write('0\n')
+            file.write("No solution found.\n")  # Change this line to indicate unsatisfiability.
+            print("No solution found.")  # Print to console as well.
         else:
             for var in sorted(solution):
                 file.write(f"{var} {'T' if solution[var] else 'F'}\n")
             file.write('0\n')
         file.write(back_matter)
+
 
 def solve_sat_from_file(input_filename, output_filename):
     clauses, back_matter = read_clauses_and_legend_from_file(input_filename)
