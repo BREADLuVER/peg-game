@@ -11,23 +11,23 @@ class Jump:
         self.time = time
 
 def assign_ids(N, triples):
-    peg_ids = {}
-    jump_ids = {}
-    counter = 1
+    pegs = {}
+    jumps = {}
+    c = 1
     
     # Assign IDs to Pegs
-    for time in range(1, N):
-        for hole in range(1, N + 1):
-            peg_ids[(hole, time)] = counter
-            counter += 1
+    for t in range(1, N):
+        for h in range(1, N + 1):
+            pegs[(h, t)] = c
+            c += 1
     
     # Assign IDs to Jumps
-    for time in range(1, N-1):
-        for triple in triples:
-            jump_ids[(triple[0], triple[1], triple[2], time)] = counter
-            counter += 1
+    for t in range(1, N-1):
+        for j in triples:
+            jumps[(j[0], j[1], j[2], t)] = c
+            c += 1
     
-    return peg_ids, jump_ids
+    return pegs, jumps
 
 def generate_refined_clauses(N, triples, peg_ids, jump_ids):
     clauses = []
