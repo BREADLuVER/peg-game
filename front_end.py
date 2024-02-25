@@ -15,16 +15,16 @@ def assign_ids(N, triples): #create ids for the bottom legends in output
     jumps = {}
     c = 1
     
-    # Assign IDs to Pegs
-    for t in range(1, N):
-        for h in range(1, N + 1):
-            pegs[(h, t)] = c
-            c += 1
-    
     # Assign IDs to Jumps
     for t in range(1, N-1):
         for j in triples:
             jumps[(j[0], j[1], j[2], t)] = c
+            c += 1
+            
+    # Assign IDs to Pegs
+    for t in range(1, N):
+        for h in range(1, N + 1):
+            pegs[(h, t)] = c
             c += 1
     
     return pegs, jumps
@@ -53,11 +53,14 @@ def generate_refined_clauses(N, triples, peg, jump):
                     clauses.append(f"-{jump_id} {peg[(B, time)]}")
                     clauses.append(f"-{jump_id} -{peg[(C, time)]}")
 
+                    # Causal axioms for jumps
+                    # After the jump, A and B should be empty, and C should have a peg.
                     clauses.append(f"-{jump_id} -{peg[(A, time + 1)]}")
                     clauses.append(f"-{jump_id} -{peg[(B, time + 1)]}")
                     clauses.append(f"-{jump_id} {peg[(C, time + 1)]}")
-                    
+
     return clauses
+
 
 
 def generate_frame_axioms(N, triples, pegs, jumps):
@@ -91,15 +94,16 @@ def generate_frame_axioms(N, triples, pegs, jumps):
 
 
 def generate_time_specific_exclusivity_clauses(jumps):
-    # organize jumps by time step
+    # Organize jumps by time step
     jumps_by_time = {}
     for (A, B, C, time), jump_id in jumps.items():
         if time not in jumps_by_time:
             jumps_by_time[time] = []
         jumps_by_time[time].append(jump_id)
     
-    # generate exclusivity clauses within each time step
     mutual_exclusivity_clauses = []
+    
+    # Generate mutual exclusivity clauses
     for time, jumps in jumps_by_time.items():
         for i in range(len(jumps)):
             for j in range(i + 1, len(jumps)):
@@ -162,7 +166,7 @@ def main_refined_execution():
         for clause in all_clauses:
             file.write(f"{clause}\n")
         
-        file.write(f"0\n")
+        file.write("0\n")
         for id, desc in sorted(legend.items()):
             file.write(f"{id}: {desc}\n")
 
