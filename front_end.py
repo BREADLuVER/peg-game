@@ -102,6 +102,17 @@ def generate_time_specific_exclusivity_clauses(jump_ids):
     return mutual_exclusivity_clauses
 
 
+def generate_starting_state_clauses(peg_ids, empty_hole, N):
+    starting_state_clauses = []
+    for hole in range(1, N + 1):
+        peg_id = peg_ids.get((hole, 1))
+        if hole == empty_hole:
+            starting_state_clauses.append(f"-{peg_id}")
+        else:
+            starting_state_clauses.append(f"{peg_id}")
+    return starting_state_clauses
+
+
 def create_legend(peg_ids, jump_ids):
     legend = {}
     for key, value in peg_ids.items():
@@ -110,10 +121,23 @@ def create_legend(peg_ids, jump_ids):
         legend[value] = f"Jump({key[0]},{key[1]},{key[2]},{key[3]})"
     return legend
 
-# Make sure to define all necessary functions and classes as per the previous discussions
-# Ensure you have the correct logic for assigning IDs and generating clauses
 
-# Implement the main function with the refined logic
+def generate_ending_state_clauses(peg_ids, N):
+    ending_state_clauses = []
+    final_time = N - 1  # Assuming the final time step is N-1
+
+    # Generate clauses for each pair of holes ensuring no two can have a peg
+    for H in range(1, N + 1):
+        for J in range(H + 1, N + 1):  # Start J from H+1 to avoid duplicate pairs and self-comparison
+            peg_H_id = peg_ids.get((H, final_time))
+            peg_J_id = peg_ids.get((J, final_time))
+            if peg_H_id and peg_J_id:  # Ensure both pegs have IDs assigned
+                clause = f"-{peg_H_id} -{peg_J_id}"
+                ending_state_clauses.append(clause)
+
+    return ending_state_clauses
+
+
 def main_refined_execution():
     N = 4  # Example configuration
     # Expanded triples to include both directions of jumps
@@ -129,8 +153,10 @@ def main_refined_execution():
 
     exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump_ids)
     
-    # Combine all clauses
-    all_clauses = clauses + frame_clauses + exclusive_action_clauses
+    starting_state_clauses = generate_starting_state_clauses(peg_ids, 1, N)
+    
+    # Combine all clauses, now including the starting state
+    all_clauses = clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses
     
     # Generate the legend for ID to description mapping
     legend = create_legend(peg_ids, jump_ids)
