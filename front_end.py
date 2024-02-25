@@ -137,7 +137,7 @@ def generate_ending_state_clauses(peg_ids, N):
 
     return ending_state_clauses
 
-def read_input(file_path='input.txt'):
+def read_input(file_path='front_end_input.txt'):
     with open(file_path, 'r') as file:
         first_line = file.readline().strip().split()
         N, empty_hole = int(first_line[0]), int(first_line[1])
