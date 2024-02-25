@@ -83,6 +83,25 @@ def generate_frame_axioms(N, triples, peg_ids, jump_ids):
     return frame_clauses
 
 
+def generate_time_specific_exclusivity_clauses(jump_ids):
+    # Organize jumps by time step
+    jumps_by_time = {}
+    for (A, B, C, time), jump_id in jump_ids.items():
+        if time not in jumps_by_time:
+            jumps_by_time[time] = []
+        jumps_by_time[time].append(jump_id)
+    
+    # Generate exclusivity clauses within each time step
+    mutual_exclusivity_clauses = []
+    for time, jumps in jumps_by_time.items():
+        for i in range(len(jumps)):
+            for j in range(i + 1, len(jumps)):
+                clause = f"-{jumps[i]} -{jumps[j]}"
+                mutual_exclusivity_clauses.append(clause)
+    
+    return mutual_exclusivity_clauses
+
+
 def create_legend(peg_ids, jump_ids):
     legend = {}
     for key, value in peg_ids.items():
@@ -99,7 +118,6 @@ def main_refined_execution():
     N = 4  # Example configuration
     # Expanded triples to include both directions of jumps
     expanded_triples = [(1, 2, 3), (2, 3, 4), (3, 4, 1), (4, 1, 2)] + [(C, B, A) for A, B, C in [(1, 2, 3), (2, 3, 4), (3, 4, 1), (4, 1, 2)]]
-    
     # Assign IDs to pegs and jumps
     peg_ids, jump_ids = assign_ids(N, expanded_triples)
     
@@ -108,9 +126,11 @@ def main_refined_execution():
     
     # Generate frame axioms considering the changes in peg states and possible jumps
     frame_clauses = generate_frame_axioms(N, expanded_triples, peg_ids, jump_ids)
+
+    exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump_ids)
     
     # Combine all clauses
-    all_clauses = clauses + frame_clauses
+    all_clauses = clauses + frame_clauses + exclusive_action_clauses
     
     # Generate the legend for ID to description mapping
     legend = create_legend(peg_ids, jump_ids)
