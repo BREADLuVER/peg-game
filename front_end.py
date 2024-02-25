@@ -156,7 +156,10 @@ def main_refined_execution():
     starting_state_clauses = generate_starting_state_clauses(peg_ids, 1, N)
     
     # Combine all clauses, now including the starting state
-    all_clauses = clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses
+    ending_state_clauses = generate_ending_state_clauses(peg_ids, N)
+
+    # Combine all clauses, now including the ending state
+    all_clauses = clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses + ending_state_clauses
     
     # Generate the legend for ID to description mapping
     legend = create_legend(peg_ids, jump_ids)
