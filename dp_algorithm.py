@@ -63,6 +63,6 @@ def solve_sat_from_file(input_filename, output_filename):
     solution = dp_solve(clauses)
     write_solution_and_legend_to_file(solution, legend, output_filename)
 
-input_filename = 'output.txt'
+input_filename = 'front_end_output.txt'
 output_filename = 'dp_output.txt'
 solve_sat_from_file(input_filename, output_filename)

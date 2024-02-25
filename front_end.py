@@ -162,7 +162,7 @@ def main_refined_execution():
         for clause in all_clauses:
             file.write(f"{clause}\n")
         
-        file.write("\nLegend:\n")
+        file.write(f"0\n")
         for id, desc in sorted(legend.items()):
             file.write(f"{id}: {desc}\n")
 
