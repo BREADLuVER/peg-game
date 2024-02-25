@@ -10,7 +10,7 @@ class Jump:
         self.end = end
         self.time = time
 
-def assign_ids(N, triples):
+def assign_ids(N, triples): #create ids for the bottom legends in output
     pegs = {}
     jumps = {}
     c = 1
@@ -29,12 +29,22 @@ def assign_ids(N, triples):
     
     return pegs, jumps
 
+
+def create_legend(pegs, jumps):
+    legend = {}
+    for key, value in pegs.items():
+        legend[value] = f"Peg({key[0]},{key[1]})"
+    for key, value in jumps.items():
+        legend[value] = f"Jump({key[0]},{key[1]},{key[2]},{key[3]})"
+    return legend
+
+
 def generate_refined_clauses(N, triples, peg, jump):
     clauses = []
 
     for time in range(1, N):
         for A, B, C in triples:
-            # Ensure we're within the valid range for jumps
+            # Ensure valid range for jumps
             if time < N - 1:
                 jump_id = jump.get((A, B, C, time))
                 if jump_id:
@@ -50,45 +60,45 @@ def generate_refined_clauses(N, triples, peg, jump):
     return clauses
 
 
-def generate_frame_axioms(N, triples, pegs, jump_ids):
+def generate_frame_axioms(N, triples, pegs, jumps):
     frame_clauses = []
 
-    for time in range(1, N):
-        for peg in range(1, N + 1):
-            current_peg = pegs.get((peg, time))
-            next_peg = pegs.get((peg, time + 1))
+    for t in range(1, N):
+        for p in range(1, N + 1):
+            current_peg = pegs.get((p, t))
+            next_peg = pegs.get((p, t + 1))
             possible_jumps = []
             less_jumps = []
 
-            # Identify possible jump affecting the peg's state
+            # identify possible jump affecting the peg's state
             for (A, B, C) in triples:
-                if peg == A:  # Peg jumps from A
-                    jump_id = jump_ids.get((A, B, C, time))
-                    if jump_id:
-                        possible_jumps.append(jump_id)
-                elif peg == C:
-                    jump_id = jump_ids.get((A, B, C, time))
-                    if jump_id:
-                        possible_jumps.append(jump_id)
-                        less_jumps.append(jump_id) #jump for less combination
+                if p == A:  # Peg jumps from A
+                    jumpid = jumps.get((A, B, C, t))
+                    if jumpid:
+                        possible_jumps.append(jumpid)
+                elif p == C:
+                    jumpid = jumps.get((A, B, C, t))
+                    if jumpid:
+                        possible_jumps.append(jumpid)
+                        less_jumps.append(jumpid) #jump for less combination
 
             # If the peg's state changes, generate the corresponding clause
-            if current_peg and next_peg:  # Check if IDs exist for both times
+            if current_peg and next_peg:
                 frame_clauses.append(f"{current_peg} -{next_peg} " + " ".join(map(str, less_jumps)))
                 frame_clauses.append(f"-{current_peg} {next_peg} " + " ".join(map(str, possible_jumps)))
 
     return frame_clauses
 
 
-def generate_time_specific_exclusivity_clauses(jump_ids):
-    # Organize jumps by time step
+def generate_time_specific_exclusivity_clauses(jumps):
+    # organize jumps by time step
     jumps_by_time = {}
-    for (A, B, C, time), jump_id in jump_ids.items():
+    for (A, B, C, time), jump_id in jumps.items():
         if time not in jumps_by_time:
             jumps_by_time[time] = []
         jumps_by_time[time].append(jump_id)
     
-    # Generate exclusivity clauses within each time step
+    # generate exclusivity clauses within each time step
     mutual_exclusivity_clauses = []
     for time, jumps in jumps_by_time.items():
         for i in range(len(jumps)):
@@ -110,22 +120,13 @@ def generate_starting_state_clauses(pegs, empty_hole, N):
     return starting_state_clauses
 
 
-def create_legend(pegs, jump_ids):
-    legend = {}
-    for key, value in pegs.items():
-        legend[value] = f"Peg({key[0]},{key[1]})"
-    for key, value in jump_ids.items():
-        legend[value] = f"Jump({key[0]},{key[1]},{key[2]},{key[3]})"
-    return legend
-
-
 def generate_ending_state_clauses(pegs, N):
     ending_state_clauses = []
     final_time = N - 1  # Assuming the final time step is N-1
 
     # Generate clauses for each pair of holes ensuring no two can have a peg
     for H in range(1, N + 1):
-        for J in range(H + 1, N + 1):  # Start J from H+1 to avoid duplicate pairs and self-comparison
+        for J in range(H + 1, N + 1):
             peg_H_id = pegs.get((H, final_time))
             peg_J_id = pegs.get((J, final_time))
             if peg_H_id and peg_J_id:  # Ensure both pegs have IDs assigned
@@ -135,40 +136,29 @@ def generate_ending_state_clauses(pegs, N):
     return ending_state_clauses
 
 def read_input(file_path='front_end_input.txt'):
-    with open(file_path, 'r') as file:
-        first_line = file.readline().strip().split()
-        N, empty_hole = int(first_line[0]), int(first_line[1])
+    with open(file_path, 'r') as file: #read input and seperate first line
+        first = file.readline().strip().split()
+        N, empty_hole = int(first[0]), int(first[1])
         triples = [tuple(map(int, line.strip().split())) for line in file]
 
     return N, empty_hole, triples
 
 def main_refined_execution():
     N, empty_hole, triples = read_input()
-    # expanded triples to include both directions of jumps
     expanded_triples = triples + [(C, B, A) for A, B, C in triples]
-
     peg, jump = assign_ids(N, expanded_triples)
     
-    # Generate refined clauses for direct implications
     clauses = generate_refined_clauses(N, expanded_triples, peg, jump)
-    
-    # Generate frame axioms considering the changes in peg states and possible jumps
     frame_clauses = generate_frame_axioms(N, expanded_triples, peg, jump)
-
     exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump)
-    
     starting_state_clauses = generate_starting_state_clauses(peg, empty_hole, N)
-    
-    # Combine all clauses, now including the starting state
     ending_state_clauses = generate_ending_state_clauses(peg, N)
 
-    # Combine all clauses, now including the ending state
     all_clauses = clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses + ending_state_clauses
     
-    # Generate the legend for ID to description mapping
     legend = create_legend(peg, jump)
     
-    with open('output.txt', 'w') as file:
+    with open('front_end_output.txt', 'w') as file:
         for clause in all_clauses:
             file.write(f"{clause}\n")
         
