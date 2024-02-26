@@ -60,41 +60,44 @@ def assign(clauses, literal):
             new_clauses.append(clause)
     return new_clauses
 
+
 def dp_solve(clauses, assignments={}):
-    # Base case: If there are no clauses left, a solution is found
-    if not clauses:
-        return assignments
-
-    # If there's an empty clause, the problem is unsatisfiable
+    # Base case checks
     if any(len(clause) == 0 for clause in clauses):
-        return None
+        return None  # Indicates an unsatisfiable clause set
 
-    # Unit clause propagation
-    while any(len(clause) == 1 for clause in clauses):
-        unit_clauses = [clause[0] for clause in clauses if len(clause) == 1]
-        for unit in unit_clauses:
-            assignments[abs(unit)] = (unit > 0)
-            # Apply the unit clause to simplify the problem
+    if not clauses:
+        return assignments  # All clauses satisfied
+
+    # Unit Propagation
+    while True:
+        unit_clauses = [clause for clause in clauses if len(clause) == 1]
+        if not unit_clauses:
+            break
+        for unit_clause in unit_clauses:
+            unit = unit_clause[0]
+            assignments[abs(unit)] = unit > 0
             clauses = apply_unit_clause(clauses, unit)
-            # Check for empty clauses again after applying unit clause
             if any(len(clause) == 0 for clause in clauses):
                 return None
 
-    # Choose a literal for branching
+    # Choose a variable (literal) to assign
     literal = choose_literal(clauses)
-    if literal is None:  # Safeguard check
-        return assignments
-    # Recursive case: Try assigning the chosen literal True, then False
-    for val in [True, False]:
-        new_assignments = assignments.copy()
-        new_assignments[abs(literal)] = val
-        new_clauses = assign(clauses, literal if val else -literal)
-        result = dp_solve(new_clauses, new_assignments)
-        if result is not None:
-            return result  # Satisfiable with current assignment
+    if literal is None:
+        return assignments  # All literals assigned
 
-    # If neither True nor False leads to a solution, the problem is unsatisfiable
-    return None
+    # Try assigning the literal True
+    new_assignments = assignments.copy()
+    new_assignments[abs(literal)] = literal > 0
+    result = dp_solve(apply_unit_clause(clauses, literal), new_assignments)
+    if result is not None:
+        return result
+
+    # Try assigning the literal False
+    new_assignments = assignments.copy()
+    new_assignments[abs(literal)] = not (literal > 0)
+    return dp_solve(apply_unit_clause(clauses, -literal), new_assignments)
+
 
 
 def find_unit_clauses(clauses):
@@ -104,13 +107,14 @@ def find_unit_clauses(clauses):
 def write_solution_and_back_matter_to_file(solution, back_matter, filename):
     with open(filename, 'w') as file:
         if solution is None:
-            file.write("No solution found.\n")  # Change this line to indicate unsatisfiability.
-            print("No solution found.")  # Print to console as well.
+            file.write("0\n") 
+            print('no') # Adjusted to match the specified output format for unsatisfiability
         else:
             for var in sorted(solution):
                 file.write(f"{var} {'T' if solution[var] else 'F'}\n")
-            file.write('0\n')
+            file.write('0\n')  # Ensure this line is present before the back matter
         file.write(back_matter)
+
 
 
 def solve_sat_from_file(input_filename, output_filename):

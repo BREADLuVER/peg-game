@@ -1,3 +1,6 @@
+from collections import defaultdict
+from itertools import combinations
+
 class Peg:
     def __init__(self, hole, time):
         self.hole = hole
@@ -93,24 +96,22 @@ def generate_frame_axioms(N, triples, pegs, jumps):
     return frame_clauses
 
 
-def generate_time_specific_exclusivity_clauses(jumps):
-    # Organize jumps by time step
-    jumps_by_time = {}
+def generate_time_specific_exclusivity_clauses(jumps, include_optional_clause=True):
+    jumps_by_time = defaultdict(list)
     for (A, B, C, time), jump_id in jumps.items():
-        if time not in jumps_by_time:
-            jumps_by_time[time] = []
         jumps_by_time[time].append(jump_id)
     
     mutual_exclusivity_clauses = []
-    
-    # Generate mutual exclusivity clauses
-    for time, jumps in jumps_by_time.items():
-        for i in range(len(jumps)):
-            for j in range(i + 1, len(jumps)):
-                clause = f"-{jumps[i]} -{jumps[j]}"
-                mutual_exclusivity_clauses.append(clause)
+    for time, jump_ids in jumps_by_time.items():
+        for a, b in combinations(jump_ids, 2):
+            mutual_exclusivity_clauses.append(f"-{a} -{b}")
+        # Optional clause: At least one action per time step
+        if include_optional_clause and jump_ids:
+            at_least_one_clause = ' '.join(f"{jump_id}" for jump_id in jump_ids)
+            mutual_exclusivity_clauses.append(at_least_one_clause)
     
     return mutual_exclusivity_clauses
+
 
 
 def generate_starting_state_clauses(pegs, empty_hole, N):
