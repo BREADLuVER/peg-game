@@ -40,6 +40,7 @@ def simplify(clauses, literal):
     clauses = [clause for clause in clauses if literal not in clause]
     return [[lit for lit in clause if lit != -literal] for clause in clauses]
 
+#
 def write_output(output_filename, solution):
     with open(output_filename, 'w') as file:
         if solution is None:
