@@ -1,14 +1,9 @@
 def parse_input(input_filename):
     with open(input_filename, 'r') as file:
         lines = file.readlines()
-        clauses = []
-        for line in lines:
-            if line.strip() == '0':
-                break
-            clause = list(map(int, line.split()))
-            clauses.append(clause)
-        max_atom = max(abs(lit) for clause in clauses for lit in clause)
-        return clauses, max_atom
+        clauses = [list(map(int, line.split())) for line in lines if line.strip() and line.strip() != '0']
+    return clauses
+
 
 def davis_putnam(clauses, assignments={}):
     # Simplify clauses and handle unit clauses
@@ -93,19 +88,21 @@ def apply_assignment(clauses, literal, value):
     return new_clauses
 
 def solve_sat_from_file(input_filename, output_filename):
-    clauses, max_atom = parse_input(input_filename)
-    solution = davis_putnam(clauses, max_atom)
-    print(f'Solution: {solution}')
-    write_output(output_filename, solution)
+    clauses = parse_input(input_filename)
+    solution_exists, solution_assignments = davis_putnam(clauses)
+    print(f'Solution Exists: {solution_exists}')
+    write_output(output_filename, solution_assignments if solution_exists else None)
+
 
 def write_output(output_filename, solution):
     with open(output_filename, 'w') as file:
         if solution is None:
-            file.write('0\n')
+            file.write("No solution found.\n")
         else:
-            for atom, value in solution.items():
+            for atom, value in sorted(solution.items()):  # Optionally sort by atom for consistent output
                 file.write(f'{atom} {"T" if value else "F"}\n')
-            file.write('0\n')
+            file.write('0\n')  # You may remove this line if '0' is no longer needed as an end-of-file marker.
+
 
 input_filename = 'front_end_output.txt'
 output_filename = 'dp_output.txt'
