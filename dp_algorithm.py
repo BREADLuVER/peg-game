@@ -36,6 +36,17 @@ def davis_putnam(clauses, assignments={}):
     
     return False, {}
 
+def select_literal(clauses, assignments):
+    """
+    Selects the next literal to assign, avoiding those already assigned.
+    """
+    for clause in clauses:
+        for lit in clause:
+            if abs(lit) not in assignments:
+                return abs(lit)
+    return None 
+
+
 def get_all_literals(clauses, assignments):
     """Returns a set of all literals not yet assigned."""
     literals = set()
