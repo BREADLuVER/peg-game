@@ -2,12 +2,16 @@ def parse_input(input_filename):
     with open(input_filename, 'r') as file:
         lines = file.readlines()
         clauses = [list(map(int, line.split())) for line in lines if line.strip() and line.strip() != '0']
-    return clauses
+        all_atoms = set(abs(lit) for clause in clauses for lit in clause)
+    return clauses, all_atoms
 
 
-def davis_putnam(clauses, assignments={}):
+def davis_putnam(clauses, all_atoms, assignments={}):
     # Base case checks
     if not clauses:
+        for atom in all_atoms:
+            if atom not in assignments:
+                assignments[atom] = True
         return True, assignments
     if any(len(clause) == 0 for clause in clauses):
         return False, {}
@@ -18,7 +22,7 @@ def davis_putnam(clauses, assignments={}):
             value = get_direct_resolution_value(clauses, literal)
             assignments[literal] = value
             new_clauses = apply_assignment(clauses, literal, value)
-            result, final_assignments = davis_putnam(new_clauses, assignments)
+            result, final_assignments = davis_putnam(new_clauses, all_atoms, assignments)
             if result:
                 return True, final_assignments
             else:
@@ -30,12 +34,11 @@ def davis_putnam(clauses, assignments={}):
         new_assignments = assignments.copy()
         new_assignments[literal] = value
         new_clauses = apply_assignment(clauses, literal, value)
-        result, final_assignments = davis_putnam(new_clauses, new_assignments)
+        result, final_assignments = davis_putnam(new_clauses, all_atoms, new_assignments)
         if result:
             return True, final_assignments
     
     return False, {}
-
 def select_literal(clauses, assignments):
     """
     Selects the next literal to assign, avoiding those already assigned.
@@ -84,8 +87,8 @@ def apply_assignment(clauses, literal, value):
 
 
 def solve_sat_from_file(input_filename, output_filename):
-    clauses = parse_input(input_filename)
-    solution_exists, solution_assignments = davis_putnam(clauses)
+    clauses, all_atoms = parse_input(input_filename)
+    solution_exists, solution_assignments = davis_putnam(clauses, all_atoms)
     print(f'Solution Exists: {solution_exists}')
     write_output(output_filename, solution_assignments if solution_exists else None)
 
