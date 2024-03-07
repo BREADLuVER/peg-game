@@ -21,7 +21,6 @@ def filter_feasible_jumps(solution, legend):
     for var, taken in solution.items():
         if taken and var in legend and legend[var].startswith("Jump"):
             jump_details = legend[var]
-            # Additional logic to filter out infeasible jumps could be implemented here
             jumps.append(jump_details)
     return jumps
 

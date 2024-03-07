@@ -33,7 +33,7 @@ def davis_putnam(clauses, max_atom, assignments={}, atom=1):
 def solve_sat_from_file(input_filename, output_filename):
     clauses, max_atom = parse_input(input_filename)
     solution = davis_putnam(clauses, max_atom)
-    print(f'Solution: {solution}')  # Debug print
+    print(f'Solution: {solution}')
     write_output(output_filename, solution)
 
 def simplify(clauses, literal):
