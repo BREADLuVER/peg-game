@@ -20,7 +20,7 @@ def davis_putnam(clauses, max_atom, assignments={}, atom=1):
         return None
 
     _, literal = min((len([lit for lit in clause if abs(lit) == abs(clause[0])]), clause[0]) for clause in clauses)
-    print(f'Selected literal: {literal}')  # Debug print
+    print(f'Selected literal: {literal}')
 
     new_clauses = simplify(clauses, literal)
     result = davis_putnam(new_clauses, max_atom, {**assignments, abs(literal): literal > 0}, atom + 1)
