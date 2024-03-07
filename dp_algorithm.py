@@ -6,86 +6,71 @@ def parse_input(input_filename):
 
 
 def davis_putnam(clauses, assignments={}):
-    # Simplify clauses and handle unit clauses
-    clauses, changed = simplify_and_handle_unit_clauses(clauses)
-    if changed:
-        # If changes were made due to unit clauses, run DP again to check for further simplifications
-        return davis_putnam(clauses, assignments)
-    
-    # If there are no clauses left, all have been satisfied
+    # Base case checks
     if not clauses:
         return True, assignments
-    
-    # If there's an empty clause, a contradiction has occurred
     if any(len(clause) == 0 for clause in clauses):
         return False, {}
     
-    # Select a literal for assignment (heuristic: first unassigned variable)
-    literal = select_unassigned_literal(clauses, assignments)
-    
-    # Try assigning the literal True, then False if True fails
+    # Proactively resolve literals that can directly satisfy single-instance clauses
+    for literal in get_all_literals(clauses, assignments):
+        if can_directly_resolve(clauses, literal):
+            value = get_direct_resolution_value(clauses, literal)
+            assignments[literal] = value
+            new_clauses = apply_assignment(clauses, literal, value)
+            result, final_assignments = davis_putnam(new_clauses, assignments)
+            if result:
+                return True, final_assignments
+            else:
+                del assignments[literal]  # Backtrack on this assignment
+
+    # If no single-instance resolution is possible, proceed with the standard assignment
+    literal = select_literal(clauses, assignments)
     for value in [True, False]:
         new_assignments = assignments.copy()
-        new_assignments[abs(literal)] = value
+        new_assignments[literal] = value
         new_clauses = apply_assignment(clauses, literal, value)
         result, final_assignments = davis_putnam(new_clauses, new_assignments)
         if result:
             return True, final_assignments
     
-    # If neither True nor False works for this literal, backtrack
     return False, {}
 
-def simplify_and_handle_unit_clauses(clauses):
-    """Simplify clauses by removing satisfied clauses and literals, handle unit clauses."""
-    simplified_clauses = []
-    assignments = {}
-    changed = False
-
-    # Detect unit clauses and assign values accordingly
-    for clause in clauses:
-        if len(clause) == 1:
-            lit = clause[0]
-            assignments[abs(lit)] = True if lit > 0 else False
-            changed = True
-    
-    if not changed:
-        return clauses, False
-    
-    # Apply found assignments to simplify clauses
-    for clause in clauses:
-        new_clause = []
-        remove_clause = False
-        for lit in clause:
-            if abs(lit) in assignments:
-                if (lit > 0 and assignments[abs(lit)]) or (lit < 0 and not assignments[abs(lit)]):
-                    remove_clause = True
-                    break
-            else:
-                new_clause.append(lit)
-        if not remove_clause:
-            simplified_clauses.append(new_clause)
-    
-    return simplified_clauses, True
-
-def select_unassigned_literal(clauses, assignments):
-    """Select the first unassigned literal."""
+def get_all_literals(clauses, assignments):
+    """Returns a set of all literals not yet assigned."""
+    literals = set()
     for clause in clauses:
         for lit in clause:
             if abs(lit) not in assignments:
-                return lit
-    return None  # Should not happen if called correctly
+                literals.add(abs(lit))
+    return literals
+
+def can_directly_resolve(clauses, literal):
+    """Check if assigning a literal can directly resolve a single-instance clause."""
+    for clause in clauses:
+        if literal in clause or -literal in clause:
+            if all(abs(lit) == literal for lit in clause):
+                return True
+    return False
+
+def get_direct_resolution_value(clauses, literal):
+    """Determines the value to assign to a literal to resolve a single-instance clause."""
+    for clause in clauses:
+        if literal in clause or -literal in clause:
+            if all(abs(lit) == literal for lit in clause):
+                return literal in clause
+    return None
 
 def apply_assignment(clauses, literal, value):
-    """Apply an assignment to simplify the set of clauses."""
+    """Simplifies clauses based on a given assignment."""
     new_clauses = []
     for clause in clauses:
-        # If the literal satisfies the clause, skip the clause
         if (literal in clause and value) or (-literal in clause and not value):
-            continue
-        # Otherwise, remove the literal if it appears in the clause
-        new_clause = [lit for lit in clause if lit != literal and lit != -literal]
+            continue  # Clause is satisfied
+        new_clause = [lit for lit in clause if abs(lit) != literal]
         new_clauses.append(new_clause)
     return new_clauses
+
 
 def solve_sat_from_file(input_filename, output_filename):
     clauses = parse_input(input_filename)
