@@ -6,36 +6,54 @@ def read_input(file_path='front_end_input.txt'):
     return N, empty_hole, triples
 
 def generate_ids(N, triples):
-    ids = []
+    id_list = []
     id_counter = 1  # Initialize ID counter
-    
-    # Directly generate four jumps for each triple, without extra looping
+
+    # Generating IDs for Jumps
     for A, B, C in triples:
-        # Forward direction at times 1 and 2
-        ids.append((id_counter, f'Jump({A},{B},{C},1)')); id_counter += 1
-        ids.append((id_counter, f'Jump({A},{B},{C},2)')); id_counter += 1
-        
-        # Reverse direction at times 1 and 2
-        ids.append((id_counter, f'Jump({C},{B},{A},1)')); id_counter += 1
-        ids.append((id_counter, f'Jump({C},{B},{A},2)')); id_counter += 1
+        for i in [1, 2]:  # Assuming time points per the example given
+            id_list.append((id_counter, f'Jump({A},{B},{C},{i})')); id_counter += 1
+            id_list.append((id_counter, f'Jump({C},{B},{A},{i})')); id_counter += 1
+            
+    # Generating IDs for Pegs
+    for H in range(1, N+1):
+        for I in range(1, N):
+            id_list.append((id_counter, f'Peg({H},{I})')); id_counter += 1
+
+    return id_list
+
+
+def encode_preconditions(id_list, triples, N):
+    # Create a lookup dictionary from the ID list
+    ids = {atom: id_number for id_number, atom in id_list}
     
-    # Generate Peg IDs
-    for H in range(1, N+1):  # For each hole
-        for I in range(1, N):  # For each time point from 1 to N-1
-            ids.append((id_counter, f'Peg({H},{I})')); id_counter += 1
-    
-    return ids
+    clauses = []
+    for A, B, C in triples:
+        for i in range(1, N-1):  # Time I for jumps
+            jump_id = ids[f'Jump({A},{B},{C},{i})']
+            # Precondition 1: A must have a peg
+            clauses.append((-jump_id, ids[f'Peg({A},{i})']))
+            # Precondition 2: B must have a peg
+            clauses.append((-jump_id, ids[f'Peg({B},{i})']))
+            # Precondition 3: C must not have a peg at I
+            clauses.append((-jump_id, -ids[f'Peg({C},{i})']))
+    return clauses
 
 
 def main_refined_execution(file_path='front_end_input.txt'):
     N, empty_hole, triples = read_input(file_path)
-    # No need to expand triples with reverse directions manually; handled in generate_ids
-    ids = generate_ids(N, triples)
+    id_list = generate_ids(N, triples)
     
-    # For demonstration purposes, let's print the IDs and their corresponding atoms
-    for id_pair in ids:
-        print(id_pair)
+    clauses = encode_preconditions(id_list, triples, N)
+    
+    # Print CNF clauses for the preconditions
+    print("\nEncoded Preconditions (CNF Clauses):")
+    for clause in clauses:
+        # Joining IDs with a space, handling negative signs for negation
+        print(' '.join(str(id) for id in clause))
 
-# Assuming 'front_end_input.txt' contains the input data
-# You can call the main function to execute the workflow
+        # Print each ID and its corresponding atom
+    print("ID and Atom List:")
+    for id_number, atom in id_list:
+        print(f'{id_number} {atom}')
 main_refined_execution('front_end_input.txt')
