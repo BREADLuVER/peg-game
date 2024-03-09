@@ -8,9 +8,9 @@ def parse_input(input_filename):
 
 def davis_putnam(clauses, all_atoms, assignments={}):
     # Base case checks
-    if not clauses or all(atom in assignments for atom in all_atoms):
+    if not clauses:
         for atom in all_atoms:
-            if atom and atom not in assignments:
+            if atom not in assignments:
                 assignments[atom] = True
         return True, assignments
     if any(len(clause) == 0 for clause in clauses):

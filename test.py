@@ -5,34 +5,92 @@ def read_input(file_path='front_end_input.txt'):
         triples = [tuple(map(int, line.strip().split())) for line in file]
     return N, empty_hole, triples
 
+class Peg:
+    def __init__(self, hole, time):
+        self.hole = hole
+        self.time = time
+        
+    def __str__(self):
+        return f"Peg({self.hole},{self.time})"
+
+class Jump:
+    def __init__(self, from_hole, over_hole, to_hole, time):
+        self.from_hole = from_hole
+        self.over_hole = over_hole
+        self.to_hole = to_hole
+        self.time = time
+        
+    def __str__(self):
+        return f"Jump({self.from_hole},{self.over_hole},{self.to_hole},{self.time})"
+
 def generate_ids(N, empty_hole, triples):
     ids = []
+    all_jumps = []  # Array for all Jump objects
+    all_pegs = []   # Array for all Peg objects
     id_counter = 1  # Initialize ID counter
     
-    # Adjust Jump ID generation to align with the specified pattern
+    # Generate Jump objects and associate IDs
     for A, B, C in triples:
-        for I in range(1, N-1, 2):  # Cover all valid time points, assuming two jumps per triple per time
-            # Ensure to not exceed N-2
-            if I < N - 1:
-                ids.append((id_counter, f'Jump({A},{B},{C},{I})')); id_counter += 1
-                ids.append((id_counter, f'Jump({A},{B},{C},{I+1})')); id_counter += 1
-                
-                ids.append((id_counter, f'Jump({C},{B},{A},{I})')); id_counter += 1
-                ids.append((id_counter, f'Jump({C},{B},{A},{I+1})')); id_counter += 1
+        for I in range(1, N-1):
+            all_jumps.append(Jump(A, B, C, I))
+            ids.append((id_counter, all_jumps[-1])); id_counter += 1
+            
+            all_jumps.append(Jump(C, B, A, I))
+            ids.append((id_counter, all_jumps[-1])); id_counter += 1
     
-    # Generate Peg IDs after all Jump IDs, considering the initial empty hole
-    for H in range(1, N+1):  # For each hole
-        for I in range(1, N):  # For each time point from 1 to N-1
+    # Generate Peg objects and associate IDs after Jump IDs
+    Q = len(all_jumps)  # Total number of Jump objects
+    for H in range(1, N+1):
+        for I in range(1, N):
             if not (H == empty_hole and I == 1):  # Skip the initial empty hole at time 1
-                ids.append((id_counter, f'Peg({H},{I})')); id_counter += 1
+                all_pegs.append(Peg(H, I))
+                ids.append((Q + len(all_pegs), all_pegs[-1]))  # Use Q+length of all_pegs for ID association
     
-    return ids
+    return ids, all_jumps, all_pegs
 
+
+def find_id_by_attributes(jumps, pegs, obj):
+    # Determine if the object is a Jump or a Peg and find its ID
+    if isinstance(obj, Jump):
+        for i, jump in enumerate(jumps, 1):  # Enumerate starts at 1 for ID association
+            if (jump.from_hole, jump.over_hole, jump.to_hole, jump.time) == (obj.from_hole, obj.over_hole, obj.to_hole, obj.time):
+                return -i  # Negated ID for jumps
+    elif isinstance(obj, Peg):
+        offset = len(jumps)  # Offset by the number of jumps
+        for i, peg in enumerate(pegs, 1 + offset):  # Adjust enumeration for offset
+            if (peg.hole, peg.time) == (obj.hole, peg.time):
+                return i  # Positive ID for pegs
+    return None  # Return None if not found
+
+def generate_cnf_clauses(jumps, pegs):
+    clauses = []
+    for jump in jumps:
+        # Find IDs for the precondition axiom components
+        jump_id = find_id_by_attributes(jumps, pegs, jump)
+        peg_at_start_id = find_id_by_attributes(jumps, pegs, Peg(jump.from_hole, jump.time))
+        peg_over_id = find_id_by_attributes(jumps, pegs, Peg(jump.over_hole, jump.time))
+        peg_at_end_id = find_id_by_attributes(jumps, pegs, Peg(jump.to_hole, jump.time))
+        
+        # Create CNF clauses for the precondition axioms
+        clauses.append(f"{jump_id} {peg_at_start_id}")
+        clauses.append(f"{jump_id} {peg_over_id}")
+        clauses.append(f"{jump_id} {-(peg_at_end_id)}")
+    return clauses
 
 def main_refined_execution(file_path='front_end_input.txt'):
     N, empty_hole, triples = read_input(file_path)
-    ids = generate_ids(N, empty_hole,  triples)
- 
-    for id_number in ids:
-        print(id_number)
+    
+    # Assuming generate_ids now correctly adds descriptive strings
+    ids, all_jumps, all_pegs = generate_ids(N, empty_hole, triples)
+    
+    cnf_clauses = generate_cnf_clauses(all_jumps, all_pegs)
+
+    # Print CNF clauses
+    for clause in cnf_clauses:
+        print(clause)
+
+    # Print IDs with their descriptive strings
+    for id_number, description in ids:
+        print(f"{id_number}: {description}")
+
 main_refined_execution('front_end_input.txt')
