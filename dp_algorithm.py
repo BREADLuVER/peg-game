@@ -15,7 +15,10 @@ def davis_putnam(clauses, all_atoms, assignments={}):
         return True, assignments
     if any(len(clause) == 0 for clause in clauses):
         return False, {}
-    
+
+    # Assign pure literals
+    clauses, assignments = assign_pure_literals(clauses, assignments)
+
     # Proactively resolve literals that can directly satisfy single-instance clauses
     for literal in get_all_literals(clauses, assignments):
         if can_directly_resolve(clauses, literal):
@@ -37,18 +40,28 @@ def davis_putnam(clauses, all_atoms, assignments={}):
         result, final_assignments = davis_putnam(new_clauses, all_atoms, new_assignments)
         if result:
             return True, final_assignments
-    
+
     return False, {}
-def select_literal(clauses, assignments):
-    """
-    Selects the next literal to assign, avoiding those already assigned.
-    """
+
+def assign_pure_literals(clauses, assignments):
+    literal_polarity = {}
     for clause in clauses:
         for lit in clause:
-            if abs(lit) not in assignments:
-                return abs(lit)
-    return None 
+            if abs(lit) in assignments:  # Skip if already assigned
+                continue
+            if abs(lit) not in literal_polarity:
+                literal_polarity[abs(lit)] = lit > 0
+            else:
+                # If we see the opposite polarity, set to None indicating it's not pure
+                if literal_polarity[abs(lit)] != (lit > 0):
+                    literal_polarity[abs(lit)] = None
 
+    # Assign pure literals
+    for lit, is_positive in literal_polarity.items():
+        if is_positive is not None:  # None indicates it's not pure
+            assignments[lit] = is_positive
+            clauses = apply_assignment(clauses, lit, is_positive)
+    return clauses, assignments
 
 def get_all_literals(clauses, assignments):
     """Returns a set of all literals not yet assigned."""
@@ -75,6 +88,14 @@ def get_direct_resolution_value(clauses, literal):
                 return literal in clause
     return None
 
+def select_literal(clauses, assignments):
+    """Selects the next literal to assign, avoiding those already assigned."""
+    for clause in clauses:
+        for lit in clause:
+            if abs(lit) not in assignments:
+                return abs(lit)
+    return None
+
 def apply_assignment(clauses, literal, value):
     """Simplifies clauses based on a given assignment."""
     new_clauses = []
@@ -84,6 +105,7 @@ def apply_assignment(clauses, literal, value):
         new_clause = [lit for lit in clause if abs(lit) != literal]
         new_clauses.append(new_clause)
     return new_clauses
+
 
 
 def solve_sat_from_file(input_filename, output_filename):
@@ -98,9 +120,11 @@ def write_output(output_filename, solution):
         if solution is None:
             file.write("No solution found.\n")
         else:
-            for atom, value in sorted(solution.items()):  # Optionally sort by atom for consistent output
+            # Filter out any items with None as key or value before sorting and writing
+            filtered_solution = {k: v for k, v in solution.items() if k is not None and v is not None}
+            for atom, value in sorted(filtered_solution.items()):  # Optionally sort by atom for consistent output
                 file.write(f'{atom} {"T" if value else "F"}\n')
-            file.write('0\n')  # You may remove this line if '0' is no longer needed as an end-of-file marker.
+            file.write('0\n')
 
 
 input_filename = 'front_end_output.txt'
