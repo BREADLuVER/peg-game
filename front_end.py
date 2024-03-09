@@ -140,76 +140,36 @@ def generate_ending_state_clauses(pegs, N):
 
     return ending_state_clauses
 
-
-def generate_ids(triples, N):
-    # Initialize an empty list to hold the IDs and their corresponding atoms
-    ids = []
-    
-    # Generate Jump IDs
-    jump_id = 1
-    for i in range(1, N-1):  # Time points for jumps are from 1 to N-2
-        for triple in triples:
-            A, B, C = triple
-            ids.append((jump_id, f'Jump({A},{B},{C},{i})'))
-            jump_id += 1
-            # Also include the reverse jump for completeness
-            ids.append((jump_id, f'Jump({C},{B},{A},{i})'))
-            jump_id += 1
-            
-    # Generate Peg IDs
-    peg_id = jump_id  # Continue numbering from where we left off with Jump IDs
-    for H in range(1, N+1):  # Holes are from 1 to N
-        for I in range(1, N):  # Time points for Pegs are from 1 to N-1
-            ids.append((peg_id, f'Peg({H},{I})'))
-            peg_id += 1
-            
-    return ids
-
 def read_input(file_path='front_end_input.txt'):
-    try:
-        with open(file_path, 'r') as file:  # Ensure the file exists and is readable
-            first_line = file.readline().strip().split()
-            # Validate the structure of the first line
-            if len(first_line) != 2:
-                raise ValueError("The first line must contain exactly two numbers.")
-            N, empty_hole = int(first_line[0]), int(first_line[1])
-            # Ensure N and empty_hole are within expected bounds (e.g., empty_hole <= N)
-            if not (1 <= empty_hole <= N):
-                raise ValueError("Empty hole must be within the range of total holes.")
-            
-            triples = [tuple(map(int, line.strip().split())) for line in file]
-            # Additional validation can be added here for the triples if necessary
-            return N, empty_hole, triples
-    except FileNotFoundError:
-        print(f"The file {file_path} was not found.")
-        return None
-    except ValueError as e:
-        print(f"Value error: {e}")
-        return None
+    with open(file_path, 'r') as file: #read input and seperate first line
+        first = file.readline().strip().split()
+        N, empty_hole = int(first[0]), int(first[1])
+        triples = [tuple(map(int, line.strip().split())) for line in file]
+
+    return N, empty_hole, triples
 
 def main_refined_execution():
     N, empty_hole, triples = read_input()
     expanded_triples = triples + [(C, B, A) for A, B, C in triples]
-    generate_ids(N, expanded_triples)
-    # peg, jump = assign_ids(N, expanded_triples)
+    peg, jump = assign_ids(N, expanded_triples)
     
-    # clauses = generate_refined_clauses(N, expanded_triples, peg, jump)
-    # frame_clauses = generate_frame_axioms(N, expanded_triples, peg, jump)
-    # exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump)
-    # starting_state_clauses = generate_starting_state_clauses(peg, empty_hole, N)
-    # ending_state_clauses = generate_ending_state_clauses(peg, N)
+    clauses = generate_refined_clauses(N, expanded_triples, peg, jump)
+    frame_clauses = generate_frame_axioms(N, expanded_triples, peg, jump)
+    exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump)
+    starting_state_clauses = generate_starting_state_clauses(peg, empty_hole, N)
+    ending_state_clauses = generate_ending_state_clauses(peg, N)
 
-    # all_clauses = clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses + ending_state_clauses
+    all_clauses = clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses + ending_state_clauses
     
-    # legend = create_legend(peg, jump)
+    legend = create_legend(peg, jump)
     
-    # with open('front_end_output.txt', 'w') as file:
-    #     for clause in all_clauses:
-    #         file.write(f"{clause}\n")
+    with open('front_end_output.txt', 'w') as file:
+        for clause in all_clauses:
+            file.write(f"{clause}\n")
         
-    #     file.write("0\n")
-    #     for id, desc in sorted(legend.items()):
-    #         file.write(f"{id}: {desc}\n")
+        file.write("0\n")
+        for id, desc in sorted(legend.items()):
+            file.write(f"{id}: {desc}\n")
 
 main_refined_execution()
 
