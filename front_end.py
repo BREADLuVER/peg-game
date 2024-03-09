@@ -75,30 +75,27 @@ def generate_causal_axioms(N, triples, peg, jump):
 def generate_frame_axioms(N, triples, pegs, jumps):
     frame_clauses = []
 
-    for t in range(1, N):  # Iterate through each time step except the last
-        for h in range(1, N + 1):  # Iterate through each hole
-            current_peg = pegs.get((h, t))  # Peg ID at time t
-            next_peg = pegs.get((h, t + 1))  # Peg ID at time t+1
+    for t in range(1, N):
+        for h in range(1, N + 1):
+            current_peg = pegs.get((h, t))
+            next_peg = pegs.get((h, t + 1))
             
-            # Clauses for peg present at time t and absent at time t+1
             if current_peg and next_peg:
-                transitions = []
-                # Check for jumps that could cause the peg at hole h to disappear
+                disappearance_transitions = []
+                # Check for jumps starting from h or jumping over h for disappearance
                 for A, B, C in triples:
-                    if A == h or B == h:  # Jumps from or over h
+                    if A == h or B == h:  # Jumps from or over h lead to disappearance
                         jump_id = jumps.get((A, B, C, t))
                         if jump_id:
-                            transitions.append(str(jump_id))
-                    if C == h:  # Jumps to h
-                        jump_id = jumps.get((A, B, C, t))
-                        if jump_id:
-                            transitions.append(str(jump_id))
+                            disappearance_transitions.append(str(jump_id))
 
-                # If there are transitions that affect the peg, add a clause
-                if transitions:
-                    frame_clause = f"-{current_peg} -{next_peg} " + " ".join(transitions)
-                    frame_clauses.append(frame_clause)
-
+                if disappearance_transitions:
+                    frame_clause_disappearance = f"-{current_peg} -{next_peg} " + " ".join(disappearance_transitions)
+                    frame_clauses.append(frame_clause_disappearance)
+    for t in range(1, N):
+        for h in range(1, N + 1):
+            current_peg = pegs.get((h, t))
+            next_peg = pegs.get((h, t + 1))
             # Clauses for peg absent at time t and present at time t+1
             if current_peg and next_peg:
                 appearance_transitions = []
@@ -111,7 +108,7 @@ def generate_frame_axioms(N, triples, pegs, jumps):
 
                 # If there are transitions that cause the peg to appear, add a clause
                 if appearance_transitions:
-                    frame_clause_appearance = f"{current_peg} {next_peg} " + " ".join(appearance_transitions)
+                    frame_clause_appearance = f"{current_peg} -{next_peg} " + " ".join(appearance_transitions)
                     frame_clauses.append(frame_clause_appearance)
 
     return frame_clauses
