@@ -1,9 +1,21 @@
 def parse_input(input_filename):
     with open(input_filename, 'r') as file:
-        lines = file.readlines()
-        clauses = [list(map(int, line.split())) for line in lines if line.strip() and line.strip() != '0']
-    return clauses
+        content = file.read()
+    separator_index = content.find('\n0\n')
 
+    if separator_index != -1:
+        clause_part, legend_part = content.split('\n0\n')
+        clause_lines = clause_part.strip().splitlines()
+        legend_lines = legend_part.strip().splitlines()
+    else:
+        clause_lines = content.strip().splitlines()
+        legend_lines = []
+
+    clauses = [list(map(int, line.split())) for line in clause_lines if line.strip()]
+    all_atoms = set(abs(lit) for clause in clauses for lit in clause)
+    legend_lines = legend_part.strip().splitlines()
+    legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines}
+    return clauses, all_atoms, legends
 
 def davis_putnam(clauses, assignments={}):
     # Base case checks
@@ -82,23 +94,35 @@ def apply_assignment(clauses, literal, value):
         new_clauses.append(new_clause)
     return new_clauses
 
+def arbitrary_assign(solution_assignments, legends):
+    # Check for missing cases in solution_assignments based on legends
+    for atom in legends.keys():
+        if atom not in solution_assignments:
+            # If missing, assign it True (T)
+            solution_assignments[atom] = 'T'
+
 
 def solve_sat_from_file(input_filename, output_filename):
-    clauses = parse_input(input_filename)
+    clauses, all_atoms, legends = parse_input(input_filename)
     solution_exists, solution_assignments = davis_putnam(clauses)
-    print(f'Solution Exists: {solution_exists}')
-    write_output(output_filename, solution_assignments if solution_exists else None)
+    if solution_exists:
+        # Fill in any missing assignments based on legends
+        arbitrary_assign(solution_assignments, legends)
+        print(f'Solution Exists: {solution_exists}')
+
+    write_output(output_filename, solution_assignments if solution_exists else None, legends)
 
 
-def write_output(output_filename, solution):
+def write_output(output_filename, solution, legends):
     with open(output_filename, 'w') as file:
         if solution is None:
-            file.write("No solution found.\n")
+            file.write("0\n No solution found.\n")
         else:
             for atom, value in sorted(solution.items()):  # Optionally sort by atom for consistent output
                 file.write(f'{atom} {"T" if value else "F"}\n')
-            file.write('0\n')  # You may remove this line if '0' is no longer needed as an end-of-file marker.
-
+            file.write(f'0\n')  # You may remove this line if '0' is no longer needed as an end-of-file marker.
+            for k, v in legends.items():
+                file.write(f'{k} {v}\n')
 
 input_filename = 'front_end_output.txt'
 output_filename = 'dp_output.txt'
