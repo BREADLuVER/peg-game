@@ -115,21 +115,32 @@ def generate_frame_axioms(N, triples, pegs, jumps):
 
 
 
-def generate_time_specific_exclusivity_clauses(jumps, include_optional_clause=True):
-    jumps_by_time = defaultdict(list)
-    for (A, B, C, time), jump_id in jumps.items():
-        jumps_by_time[time].append(jump_id)
-    
+def generate_time_clauses(N, jumps, optional_at_least_one=True):
     mutual_exclusivity_clauses = []
+    at_least_one_action_clauses = []
+
+    # Group jumps by their time step
+    jumps_by_time = {}
+    for (A, B, C, time), jump_id in jumps.items():
+        if time not in jumps_by_time:
+            jumps_by_time[time] = []
+        jumps_by_time[time].append(jump_id)
+
+    # Generate mutual exclusivity clauses for each time step
     for time, jump_ids in jumps_by_time.items():
-        for a, b in combinations(jump_ids, 2):
-            mutual_exclusivity_clauses.append(f"-{a} -{b}")
-        # Optional clause: At least one action per time step
-        if include_optional_clause and jump_ids:
-            at_least_one_clause = ' '.join(f"{jump_id}" for jump_id in jump_ids)
-            mutual_exclusivity_clauses.append(at_least_one_clause)
-    
-    return mutual_exclusivity_clauses
+        # Mutual exclusivity: No two jumps can occur at the same time
+        for i in range(len(jump_ids)):
+            for j in range(i + 1, len(jump_ids)):
+                mutual_exclusivity_clauses.append(f"-{jump_ids[i]} -{jump_ids[j]}")
+
+        # Optionally, ensure at least one action per time step
+        if optional_at_least_one and jump_ids:
+            at_least_one_action_clauses.append(" ".join([str(jump_id) for jump_id in jump_ids]))
+
+    # Combine clauses for mutual exclusivity and, optionally, for at least one action
+    all_clauses = mutual_exclusivity_clauses + ([" ".join(at_least_one_action_clauses)] if optional_at_least_one and at_least_one_action_clauses else [])
+
+    return all_clauses
 
 
 
@@ -175,7 +186,7 @@ def main_refined_execution():
     clauses = generate_refined_clauses(N, expanded_triples, peg, jump)
     causal_clauses = generate_causal_axioms(N, expanded_triples, peg, jump)
     frame_clauses = generate_frame_axioms(N, expanded_triples, peg, jump)
-    exclusive_action_clauses = generate_time_specific_exclusivity_clauses(jump)
+    exclusive_action_clauses = generate_time_clauses(N, jump)
     starting_state_clauses = generate_starting_state_clauses(peg, empty_hole, N)
     ending_state_clauses = generate_ending_state_clauses(peg, N)
 
