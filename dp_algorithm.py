@@ -34,8 +34,7 @@ def find_pure_literals(clauses):
     pure_literals = {lit for lit in positive if lit not in negative} | {-lit for lit in negative if lit not in positive}
     return pure_literals
 
-def davis_putnam(clauses, assignments={}):
-    print(f'new loop {clauses}')
+def davis_putnam(clauses, assignments={}, tried_assignments=set()):
     # Base condition checks
     if not clauses:
         return True, assignments
@@ -70,10 +69,13 @@ def davis_putnam(clauses, assignments={}):
     if clauses:  # Ensure clauses are still present
         literal = select_literal(clauses, assignments)
         for value in [True, False]:
+            if (literal, value) in tried_assignments:
+                continue
             new_assignments = assignments.copy()
             new_assignments[literal] = value
             new_clauses = apply_assignment(clauses, literal, value)
-            result, final_assignments = davis_putnam(new_clauses, new_assignments)
+            tried_assignments.add((literal, value))
+            result, final_assignments = davis_putnam(new_clauses, new_assignments, tried_assignments)
             if result:
                 return True, final_assignments
 
