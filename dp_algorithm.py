@@ -17,35 +17,66 @@ def parse_input(input_filename):
     legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines}
     return clauses, all_atoms, legends
 
+def find_unit_clauses(clauses):
+    """Identifies unit clauses and returns them."""
+    return [clause[0] for clause in clauses if len(clause) == 1]
+
+def find_pure_literals(clauses):
+    """Finds pure literals in the clauses."""
+    positive = set()
+    negative = set()
+    for clause in clauses:
+        for lit in clause:
+            if lit > 0:
+                positive.add(lit)
+            else:
+                negative.add(-lit)
+    pure_literals = {lit for lit in positive if lit not in negative} | {-lit for lit in negative if lit not in positive}
+    return pure_literals
+
 def davis_putnam(clauses, assignments={}):
-    # Base case checks
+    print(f'new loop {clauses}')
+    # Base condition checks
     if not clauses:
         return True, assignments
     if any(len(clause) == 0 for clause in clauses):
         return False, {}
-    
-    # Proactively resolve literals that can directly satisfy single-instance clauses
-    for literal in get_all_literals(clauses, assignments):
-        if can_directly_resolve(clauses, literal):
-            value = get_direct_resolution_value(clauses, literal)
-            assignments[literal] = value
+
+    # Handle unit clauses
+    unit_clauses = find_unit_clauses(clauses)
+    for literal in unit_clauses:
+        if abs(literal) not in assignments:
+            assignments[abs(literal)] = True if literal > 0 else False
+            clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
+            # Re-check base conditions after applying unit clause assignments
+            if not clauses:
+                return True, assignments
+            if any(len(clause) == 0 for clause in clauses):
+                return False, {}
+
+    # Handle pure literals
+    pure_literals = find_pure_literals(clauses)
+    for literal in pure_literals:
+        if abs(literal) not in assignments:
+            assignments[abs(literal)] = True if literal > 0 else False
+            clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
+            # Re-check base conditions after applying pure literal assignments
+            if not clauses:
+                return True, assignments
+            if any(len(clause) == 0 for clause in clauses):
+                return False, {}
+
+    # Proceed with standard DPLL if no unit or pure literals found
+    if clauses:  # Ensure clauses are still present
+        literal = select_literal(clauses, assignments)
+        for value in [True, False]:
+            new_assignments = assignments.copy()
+            new_assignments[literal] = value
             new_clauses = apply_assignment(clauses, literal, value)
-            result, final_assignments = davis_putnam(new_clauses, assignments)
+            result, final_assignments = davis_putnam(new_clauses, new_assignments)
             if result:
                 return True, final_assignments
-            else:
-                del assignments[literal]  # Backtrack on this assignment
 
-    # If no single-instance resolution is possible, proceed with the standard assignment
-    literal = select_literal(clauses, assignments)
-    for value in [True, False]:
-        new_assignments = assignments.copy()
-        new_assignments[literal] = value
-        new_clauses = apply_assignment(clauses, literal, value)
-        result, final_assignments = davis_putnam(new_clauses, new_assignments)
-        if result:
-            return True, final_assignments
-    
     return False, {}
 
 def select_literal(clauses, assignments):
