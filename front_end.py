@@ -90,7 +90,7 @@ def generate_frame_axioms(N, triples, pegs, jumps):
                             disappearance_transitions.append(str(jump_id))
 
                 if disappearance_transitions:
-                    frame_clause_disappearance = f"-{current_peg} -{next_peg} " + " ".join(disappearance_transitions)
+                    frame_clause_disappearance = f"-{current_peg} {next_peg} " + " ".join(disappearance_transitions)
                     frame_clauses.append(frame_clause_disappearance)
     for t in range(1, N):
         for h in range(1, N + 1):
@@ -132,10 +132,6 @@ def generate_time_clauses(N, jumps, optional_at_least_one=True):
         for i in range(len(jump_ids)):
             for j in range(i + 1, len(jump_ids)):
                 mutual_exclusivity_clauses.append(f"-{jump_ids[i]} -{jump_ids[j]}")
-
-        # Optionally, ensure at least one action per time step
-        if optional_at_least_one and jump_ids:
-            at_least_one_action_clauses.append(" ".join([str(jump_id) for jump_id in jump_ids]))
 
     # Combine clauses for mutual exclusivity and, optionally, for at least one action
     all_clauses = mutual_exclusivity_clauses + ([" ".join(at_least_one_action_clauses)] if optional_at_least_one and at_least_one_action_clauses else [])
