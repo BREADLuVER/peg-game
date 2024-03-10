@@ -200,7 +200,7 @@ def main_refined_execution():
         
         file.write("0\n")
         for id, desc in sorted(legend.items()):
-            file.write(f"{id}: {desc}\n")
+            file.write(f"{id} {desc}\n")
 
 main_refined_execution()
 
