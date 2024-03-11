@@ -10,6 +10,7 @@ front_end_output.txt --> dp_algorithum --> dp_output.txt
 
 dp_output.txt--> back_end.py --> backend_output.txt
 
+please recongize that the backend will only recognize input with 0 and a legend section with items that start with Jump and Peg
 
 # run using
 
