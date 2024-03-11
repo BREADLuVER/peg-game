@@ -42,19 +42,9 @@ def find_pure_literals(clauses):
     return pure_literals
 
 
-def davis_putnam(clauses, assignments={}, tried_assignments=None, previous_states = None):
+def davis_putnam(clauses, assignments={}, tried_assignments=None):
     if tried_assignments is None:
         tried_assignments = set()
-    if previous_states is None:
-        previous_states = set()
-
-    current_state = (frozenset(tuple(clause) for clause in clauses), frozenset(assignments.items()))
-    if current_state in previous_states:
-        print("Detected cycling without progress, terminating search.")
-        return False, {}
-    else:
-        previous_states.add(current_state)
-
     print(f"Starting DPLL with {len(clauses)} clauses and assignments: {assignments}")
 
     # base conditions
@@ -71,7 +61,7 @@ def davis_putnam(clauses, assignments={}, tried_assignments=None, previous_state
         print(f"Applying unit clause assignment for literal {literal}")
         if abs(literal) not in assignments:
             assignments[abs(literal)] = True if literal > 0 else False
-            clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])                       
+            clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
             if not clauses:
                 print("Solution found after applying unit clause assignments.")
                 return True, assignments
@@ -110,16 +100,15 @@ def davis_putnam(clauses, assignments={}, tried_assignments=None, previous_state
             if any(len(clause) == 0 for clause in new_clauses):
                 print(f"Contradiction found with assignment {literal} = {value}, backtracking.")
                 continue
-            new_tried_assignments = tried_assignments.copy()
+            new_tried_assignments = tried_assignments.copy()  # Copy tried_assignments for the recursive call
             new_tried_assignments.add((literal, value))
-            result, final_assignments = davis_putnam(new_clauses, new_assignments, new_tried_assignments, previous_states)
+            result, final_assignments = davis_putnam(new_clauses, new_assignments, new_tried_assignments)
             if result:
                 print("Solution found in deeper recursion.")
                 return True, final_assignments
 
     print("Exhausted all options, no solution found.")
     return False, {}
-
 
 
 def select_literal(clauses, assignments):
@@ -158,17 +147,13 @@ def get_direct_resolution_value(clauses, literal):
 
 def apply_assignment(clauses, literal, value):
     """simplifies clauses based on a given assignment."""
-    print(f"Applying assignment: literal {literal} = {'True' if value else 'False'}")  # Debug line to show the assignment being applied
     new_clauses = []
     for clause in clauses:
         if (literal in clause and value) or (-literal in clause and not value):
-            print(f"Clause {clause} is satisfied by the assignment and will be removed.")  # Debug line for satisfied clauses
             continue  # Clause is satisfied, so it is removed from the list
         new_clause = [lit for lit in clause if abs(lit) != literal]
-        if len(new_clause) != len(clause):
-            print(f"Clause {clause} simplified to {new_clause} by removing literal {literal}.")  # Debug line for clause simplification
+
         new_clauses.append(new_clause)
-    print(f"New set of clauses after applying the assignment: {new_clauses}")  # Debug line to show the new set of clauses
     return new_clauses
 
 def arbitrary_assign(solution_assignments, legends):
