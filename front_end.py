@@ -42,39 +42,41 @@ def create_legend(pegs, jumps):
     return legend
 
 
-def generate_refined_clauses(N, triples, peg, jump):
+def precondition_axioms(N, triples, peg, jump):
+    '''generate the precondition clauses for the peg solitaire problem'''
     clauses = []
-
-    for time in range(1, N):  # Loop through each time step
-        for A, B, C in triples:  # For each triple (A, B, C) that defines a possible jump
-            if time < N - 1:  # Ensure we're within the valid range for jumps
+    for time in range(1, N): # Iterate over each time step
+        for A, B, C in triples:
+            if time < N - 1:
                 jump_id = jump.get((A, B, C, time))  # Get the ID for this specific jump
-                if jump_id:  # If the jump ID exists
+                if jump_id:
                     # Generate the precondition axioms in CNF
-                    # If Jump(A,B,C,I) happens, then Peg(A,I) and Peg(B,I) must be true, and Peg(C,I) must be false
-                    clauses.append(f"-{jump_id} {peg[(A, time)]}")  # ~Jump(A,B,C,I) V Peg(A,I)
-                    clauses.append(f"-{jump_id} {peg[(B, time)]}")  # ~Jump(A,B,C,I) V Peg(B,I)
-                    clauses.append(f"-{jump_id} -{peg[(C, time)]}")  # ~Jump(A,B,C,I) V ~Peg(C,I)
+                    clauses.append(f"-{jump_id} {peg[(A, time)]}")
+                    clauses.append(f"-{jump_id} {peg[(B, time)]}")
+                    clauses.append(f"-{jump_id} -{peg[(C, time)]}")
 
     return clauses
 
-def generate_causal_axioms(N, triples, peg, jump):
+
+def causal_axioms(N, triples, peg, jump):
+    '''generate the causal clauses for the peg solitaire problem'''
     causal_clauses = []
 
     for time in range(1, N - 1):  # Iterate over each time step, except the last one since it cannot lead to a next state
-        for A, B, C in triples:  # For each jump possibility
-            jump_id = jump.get((A, B, C, time))  # Get the jump ID if it exists
-            if jump_id:  # If there's a valid jump
+        for A, B, C in triples:
+            jump_id = jump.get((A, B, C, time))
+            if jump_id:
                 # Create the causal effect clauses
-                causal_clauses.append(f"-{jump_id} -{peg[(A, time + 1)]}")  # ~Jump(A,B,C,I) V ~Peg(A,I+1)
-                causal_clauses.append(f"-{jump_id} -{peg[(B, time + 1)]}")  # ~Jump(A,B,C,I) V ~Peg(B,I+1)
-                causal_clauses.append(f"-{jump_id} {peg[(C, time + 1)]}")  # ~Jump(A,B,C,I) V Peg(C,I+1)
-
+                causal_clauses.append(f"-{jump_id} -{peg[(A, time + 1)]}")
+                causal_clauses.append(f"-{jump_id} -{peg[(B, time + 1)]}")
+                causal_clauses.append(f"-{jump_id} {peg[(C, time + 1)]}")
     return causal_clauses
 
-def generate_frame_axioms(N, triples, pegs, jumps):
+def frame_axioms(N, triples, pegs, jumps):
+    '''generate the frame clauses for the peg solitaire problem'''
     frame_clauses = []
 
+    # generate clauses for disappearance of pegs
     for t in range(1, N):
         for h in range(1, N + 1):
             current_peg = pegs.get((h, t))
@@ -82,7 +84,7 @@ def generate_frame_axioms(N, triples, pegs, jumps):
             
             if current_peg and next_peg:
                 disappearance_transitions = []
-                # Check for jumps starting from h or jumping over h for disappearance
+                # check for jumps starting from h or jumping over h for disappearance
                 for A, B, C in triples:
                     if A == h or B == h:  # Jumps from or over h lead to disappearance
                         jump_id = jumps.get((A, B, C, t))
@@ -92,14 +94,16 @@ def generate_frame_axioms(N, triples, pegs, jumps):
                 if disappearance_transitions:
                     frame_clause_disappearance = f"-{current_peg} {next_peg} " + " ".join(disappearance_transitions)
                     frame_clauses.append(frame_clause_disappearance)
+    
+    # generate clauses for appearance of pegs
     for t in range(1, N):
         for h in range(1, N + 1):
             current_peg = pegs.get((h, t))
             next_peg = pegs.get((h, t + 1))
-            # Clauses for peg absent at time t and present at time t+1
+            # if there are transitions that cause the peg to appear, add a clause
             if current_peg and next_peg:
                 appearance_transitions = []
-                # Check for jumps that could cause a peg to appear at hole h
+                # check for jumps ending at h for appearance
                 for A, B, C in triples:
                     if C == h:  # Jumps ending at h
                         jump_id = jumps.get((A, B, C, t))
@@ -114,8 +118,8 @@ def generate_frame_axioms(N, triples, pegs, jumps):
     return frame_clauses
 
 
-
-def generate_time_clauses(N, jumps, optional_at_least_one=True):
+def time_clauses(N, jumps, optional_at_least_one=True):
+    '''generate the time clauses for the peg solitaire problem'''
     mutual_exclusivity_clauses = []
     at_least_one_action_clauses = []
 
@@ -135,14 +139,12 @@ def generate_time_clauses(N, jumps, optional_at_least_one=True):
         if optional_at_least_one and jump_ids:
             at_least_one_action_clauses.append(" ".join([str(jump_id) for jump_id in jump_ids]))
 
-    # Combine clauses for mutual exclusivity and, optionally, for at least one action
     all_clauses = mutual_exclusivity_clauses + ([" ".join(at_least_one_action_clauses)] if optional_at_least_one and at_least_one_action_clauses else [])
 
     return all_clauses
 
 
-
-def generate_starting_state_clauses(pegs, empty_hole, N):
+def starting_state_clauses(pegs, empty_hole, N):
     starting_state_clauses = []
     for hole in range(1, N + 1):
         peg_id = pegs.get((hole, 1))
@@ -153,7 +155,7 @@ def generate_starting_state_clauses(pegs, empty_hole, N):
     return starting_state_clauses
 
 
-def generate_ending_state_clauses(pegs, N):
+def ending_state_clauses(pegs, N):
     ending_state_clauses = []
     final_time = N - 1  # Assuming the final time step is N-1
 
@@ -168,6 +170,7 @@ def generate_ending_state_clauses(pegs, N):
 
     return ending_state_clauses
 
+
 def read_input(file_path='front_end_input.txt'):
     with open(file_path, 'r') as file: #read input and seperate first line
         first = file.readline().strip().split()
@@ -176,19 +179,20 @@ def read_input(file_path='front_end_input.txt'):
 
     return N, empty_hole, triples
 
-def main_refined_execution():
+
+def main():
     N, empty_hole, triples = read_input()
     expanded_triples = triples + [(C, B, A) for A, B, C in triples]
     peg, jump = assign_ids(N, expanded_triples)
     
-    clauses = generate_refined_clauses(N, expanded_triples, peg, jump)
-    causal_clauses = generate_causal_axioms(N, expanded_triples, peg, jump)
-    frame_clauses = generate_frame_axioms(N, expanded_triples, peg, jump)
-    exclusive_action_clauses = generate_time_clauses(N, jump)
-    starting_state_clauses = generate_starting_state_clauses(peg, empty_hole, N)
-    ending_state_clauses = generate_ending_state_clauses(peg, N)
+    clauses = precondition_axioms(N, expanded_triples, peg, jump)
+    causal_clauses = causal_axioms(N, expanded_triples, peg, jump)
+    frame_clauses = frame_axioms(N, expanded_triples, peg, jump)
+    exclusive_action_clauses = time_clauses(N, jump)
+    starting_state = starting_state_clauses(peg, empty_hole, N)
+    ending_state = ending_state_clauses(peg, N)
 
-    all_clauses = clauses + causal_clauses + frame_clauses + exclusive_action_clauses + starting_state_clauses + ending_state_clauses
+    all_clauses = clauses + causal_clauses + frame_clauses + exclusive_action_clauses + starting_state + ending_state
     
     legend = create_legend(peg, jump)
     
@@ -200,6 +204,6 @@ def main_refined_execution():
         for id, desc in sorted(legend.items()):
             file.write(f"{id} {desc}\n")
 
-main_refined_execution()
+main()
 
 
