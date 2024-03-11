@@ -1,4 +1,4 @@
-def read_dp_output(dp_output_filename):
+def parse_input(dp_output_filename):
     with open(dp_output_filename, 'r') as file:
         lines = file.read().split('\n0\n')  # Split into solution and legend parts
         solution_part, legend_part = lines[0], lines[1]
@@ -16,14 +16,23 @@ def filter_feasible_jumps(solution, legend):
     return jumps
 
 def generate_moves(dp_output_filename):
-    solution, legend = read_dp_output(dp_output_filename)
+    solution, legend = parse_input(dp_output_filename)
     if not solution:  # If there's no solution in the DP output
         return ["NO SOLUTION"]
     feasible_jumps = filter_feasible_jumps(solution, legend)
     return feasible_jumps if feasible_jumps else ["NO SOLUTION"]
 
+def write_output(output_filename, solution):
+    with open(output_filename, 'w') as file:
+        if solution is None:
+            file.write("0\n No solution found.\n")
+        else:
+            for s in solution:
+                file.write(f'{s} \n')
+
 def main():
     dp_output_filename = 'dp_output.txt'
+    output_filename = 'backend_output.txt'
     moves = generate_moves(dp_output_filename)
     if moves == ["NO SOLUTION"]:
         print("NO SOLUTION")
@@ -31,7 +40,8 @@ def main():
         print("Sequence of feasible jumps to solve the peg game:")
         for move in moves:
             print(move)
-
+    write_output(output_filename, moves if moves else None)
+    
 if __name__ == "__main__":
     main()
 

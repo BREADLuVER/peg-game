@@ -1,4 +1,4 @@
-def parse_input(input_filename):
+def parse_input(input_filename): # This function is used to parse the input file and return the clauses, all_atoms, and legends
     with open(input_filename, 'r') as file:
         content = file.read()
     separator_index = content.find('\n0\n')
@@ -17,8 +17,7 @@ def parse_input(input_filename):
     legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines}
     return clauses, all_atoms, legends
 
-def find_unit_clauses(clauses):
-    """Identifies unit clauses and returns them."""
+def find_unit_clauses(clauses): # This function is used to find unit clauses in the clauses
     return [clause[0] for clause in clauses if len(clause) == 1]
 
 def find_pure_literals(clauses):

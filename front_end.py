@@ -132,6 +132,8 @@ def generate_time_clauses(N, jumps, optional_at_least_one=True):
         for i in range(len(jump_ids)):
             for j in range(i + 1, len(jump_ids)):
                 mutual_exclusivity_clauses.append(f"-{jump_ids[i]} -{jump_ids[j]}")
+        if optional_at_least_one and jump_ids:
+            at_least_one_action_clauses.append(" ".join([str(jump_id) for jump_id in jump_ids]))
 
     # Combine clauses for mutual exclusivity and, optionally, for at least one action
     all_clauses = mutual_exclusivity_clauses + ([" ".join(at_least_one_action_clauses)] if optional_at_least_one and at_least_one_action_clauses else [])
