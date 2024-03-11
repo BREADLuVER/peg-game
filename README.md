@@ -9,3 +9,10 @@ front_end_output.txt --> dp_algorithum --> dp_output.txt
 
 
 dp_output.txt--> back_end.py --> backend_output.txt
+
+
+run using:
+
+- python front_end.py
+- python dp_algorithm.py
+- python back_end.py
