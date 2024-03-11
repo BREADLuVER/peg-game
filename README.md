@@ -19,7 +19,15 @@ dp_output.txt--> back_end.py --> backend_output.txt
 
 ## example front_end_input:
 4 1
+
+
 1 2 3
+
+
 2 3 4
+
+
 3 4 1
+
+
 4 1 2
