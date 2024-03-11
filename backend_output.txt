@@ -1,8 +1,1 @@
-Jump(3,4,1,1) 
-Jump(1,2,3,2) 
-Peg(2,1) 
-Peg(3,1) 
-Peg(4,1) 
-Peg(1,2) 
-Peg(2,2) 
-Peg(3,3) 
+NO SOLUTION 

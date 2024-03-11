@@ -1,6 +1,8 @@
 def parse_input(dp_output_filename):
     with open(dp_output_filename, 'r') as file:
         lines = file.read().split('\n0\n')
+        if len(lines) <= 2:
+            return None, None
         solution_part, legend_part = lines[0], lines[1]
         # Parse the solution and legend parts
         solution_lines = solution_part.strip().splitlines()
@@ -8,7 +10,9 @@ def parse_input(dp_output_filename):
         
         legend_lines = legend_part.strip().splitlines()
         legend = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines}
-
+        
+        #print(solution_part, legend_part)
+    
     return solution, legend
 
 def jumps(solution, legend): # This function is used to filter the feasible jumps from the solution
@@ -26,7 +30,7 @@ def generate_moves(dp_output_filename):
 def write_output(output_filename, solution):
     with open(output_filename, 'w') as file:
         if solution is None:
-            file.write("0\n No solution found.\n")
+            file.write("0\n NO SOLUTION.\n")
         else:
             for s in solution:
                 file.write(f'{s} \n')

@@ -165,7 +165,9 @@ def solve_sat_from_file(input_filename, output_filename):
 def write_output(output_filename, solution, legends):
     with open(output_filename, 'w') as file:
         if solution is None:
-            file.write("0\n No solution found.\n")
+            file.write("0\n")
+            for k, v in legends.items():
+                file.write(f'{k} {v}\n')
         else:
             for atom, value in sorted(solution.items()):  # Optionally sort by atom for consistent output
                 file.write(f'{atom} {"T" if value else "F"}\n')
