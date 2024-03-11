@@ -1,7 +1,7 @@
 def parse_input(dp_output_filename):
     with open(dp_output_filename, 'r') as file:
         lines = file.read().split('\n0\n')
-        if len(lines) <= 2:
+        if len(lines) <= 1:
             return None, None
         solution_part, legend_part = lines[0], lines[1]
         # Parse the solution and legend parts
@@ -16,7 +16,7 @@ def parse_input(dp_output_filename):
     return solution, legend
 
 def jumps(solution, legend): # This function is used to filter the feasible jumps from the solution
-    jumps = [legend[var] for var, taken in solution.items() if taken and var in legend]
+    jumps = [legend[var] for var, taken in solution.items() if taken and var in legend and legend[var].startswith('Jump')]
     return jumps
 
 def generate_moves(dp_output_filename): 
@@ -41,10 +41,6 @@ def main():
     moves = generate_moves(dp_output_filename)
     if moves == ["NO SOLUTION"]:
         print("NO SOLUTION")
-    else:
-        print("Sequence of feasible jumps to solve the peg game:")
-        for move in moves:
-            print(move)
     write_output(output_filename, moves if moves else None)
     
 if __name__ == "__main__":

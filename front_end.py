@@ -203,7 +203,7 @@ def main():
         file.write("0\n")
         for id, desc in sorted(legend.items()):
             file.write(f"{id} {desc}\n")
-
+        print("Output Written")
 main()
 
 
