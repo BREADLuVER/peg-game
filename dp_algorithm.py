@@ -1,8 +1,9 @@
-def parse_input(input_filename): # This function is used to parse the input file and return the clauses, all_atoms, and legends
+def parse_input(input_filename):
     with open(input_filename, 'r') as file:
         content = file.read()
     separator_index = content.find('\n0\n')
 
+    # Split the content into clauses and legends
     if separator_index != -1:
         clause_part, legend_part = content.split('\n0\n')
         clause_lines = clause_part.strip().splitlines()
@@ -17,8 +18,11 @@ def parse_input(input_filename): # This function is used to parse the input file
     legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines}
     return clauses, all_atoms, legends
 
-def find_unit_clauses(clauses): # This function is used to find unit clauses in the clauses
+
+def find_unit_clauses(clauses):
+    """Finds unit clauses in the clauses."""
     return [clause[0] for clause in clauses if len(clause) == 1]
+
 
 def find_pure_literals(clauses):
     """Finds pure literals in the clauses."""
@@ -30,41 +34,44 @@ def find_pure_literals(clauses):
                 positive.add(lit)
             else:
                 negative.add(-lit)
+    # pure literals are those that are in positive or negative but not both
     pure_literals = {lit for lit in positive if lit not in negative} | {-lit for lit in negative if lit not in positive}
     return pure_literals
 
+
 def davis_putnam(clauses, assignments={}, tried_assignments=set()):
-    # Base condition checks
+    # base conditions
     if not clauses:
         return True, assignments
     if any(len(clause) == 0 for clause in clauses):
         return False, {}
 
-    # Handle unit clauses
+    # check for unit clauses
     unit_clauses = find_unit_clauses(clauses)
     for literal in unit_clauses:
         if abs(literal) not in assignments:
             assignments[abs(literal)] = True if literal > 0 else False
-            clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
+            # apply the unit clause assignment
+            clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])                       
             # Re-check base conditions after applying unit clause assignments
             if not clauses:
                 return True, assignments
             if any(len(clause) == 0 for clause in clauses):
                 return False, {}
 
-    # Handle pure literals
+    # check for pure literals
     pure_literals = find_pure_literals(clauses)
     for literal in pure_literals:
-        if abs(literal) not in assignments:
-            assignments[abs(literal)] = True if literal > 0 else False
+        if abs(literal) not in assignments: # check if literal is already assigned
+            assignments[abs(literal)] = True if literal > 0 else False # assign the pure literal
             clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
-            # Re-check base conditions after applying pure literal assignments
+            # check base conditions after applying pure literal assignments
             if not clauses:
                 return True, assignments
             if any(len(clause) == 0 for clause in clauses):
                 return False, {}
 
-    # Proceed with standard DPLL if no unit or pure literals found
+    # standard DPLLS
     if clauses:  # Ensure clauses are still present
         literal = select_literal(clauses, assignments)
         for value in [True, False]:
@@ -80,11 +87,10 @@ def davis_putnam(clauses, assignments={}, tried_assignments=set()):
 
     return False, {}
 
+
 def select_literal(clauses, assignments):
-    """
-    Selects the next literal to assign, avoiding those already assigned.
-    """
-    for clause in clauses:
+    """selects an unassigned literal from the clauses."""
+    for clause in clauses: # check for unassigned literals in each clause
         for lit in clause:
             if abs(lit) not in assignments:
                 return abs(lit)
@@ -101,7 +107,7 @@ def get_all_literals(clauses, assignments):
     return literals
 
 def can_directly_resolve(clauses, literal):
-    """Check if assigning a literal can directly resolve a single-instance clause."""
+    """vheck if assigning a literal can directly resolve a single-instance clause."""
     for clause in clauses:
         if literal in clause or -literal in clause:
             if all(abs(lit) == literal for lit in clause):
@@ -109,7 +115,7 @@ def can_directly_resolve(clauses, literal):
     return False
 
 def get_direct_resolution_value(clauses, literal):
-    """Determines the value to assign to a literal to resolve a single-instance clause."""
+    """determines the value to assign to a literal to resolve a single-instance clause."""
     for clause in clauses:
         if literal in clause or -literal in clause:
             if all(abs(lit) == literal for lit in clause):
@@ -117,7 +123,7 @@ def get_direct_resolution_value(clauses, literal):
     return None
 
 def apply_assignment(clauses, literal, value):
-    """Simplifies clauses based on a given assignment."""
+    """simplifies clauses based on a given assignment."""
     new_clauses = []
     for clause in clauses:
         if (literal in clause and value) or (-literal in clause and not value):
@@ -127,7 +133,7 @@ def apply_assignment(clauses, literal, value):
     return new_clauses
 
 def arbitrary_assign(solution_assignments, legends):
-    # Check for missing cases in solution_assignments based on legends
+    """Fills in any missing assignments based on legends."""
     for atom in legends.keys():
         if atom not in solution_assignments:
             # If missing, assign it True (T)
@@ -138,7 +144,6 @@ def solve_sat_from_file(input_filename, output_filename):
     clauses, all_atoms, legends = parse_input(input_filename)
     solution_exists, solution_assignments = davis_putnam(clauses)
     if solution_exists:
-        # Fill in any missing assignments based on legends
         arbitrary_assign(solution_assignments, legends)
         print(f'Solution Exists: {solution_exists}')
 
@@ -155,6 +160,7 @@ def write_output(output_filename, solution, legends):
             file.write(f'0\n')  # You may remove this line if '0' is no longer needed as an end-of-file marker.
             for k, v in legends.items():
                 file.write(f'{k} {v}\n')
+
 
 input_filename = 'front_end_output.txt'
 output_filename = 'dp_output.txt'
