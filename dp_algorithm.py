@@ -1,3 +1,5 @@
+import math
+
 def parse_input(input_filename):
     with open(input_filename, 'r') as file:
         content = file.read()
@@ -18,7 +20,6 @@ def parse_input(input_filename):
     all_atoms = set(abs(lit) for clause in clauses for lit in clause if lit != 0)
     legend_lines = legend_part.strip().splitlines()
     legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines if line.strip() and line.split()[0] != '0'}
-    print(clauses, all_atoms, legends)
     return clauses, all_atoms, legends
 
 
@@ -42,10 +43,9 @@ def find_pure_literals(clauses):
     return pure_literals
 
 
-def davis_putnam(clauses, assignments={}, tried_assignments=None):
+def davis_putnam(clauses, assignments={}, tried_assignments=None, call_limit=200, current_call=0):
     if tried_assignments is None:
         tried_assignments = set()
-    print(f"Starting DPLL with {len(clauses)} clauses and assignments: {assignments}")
 
     # base conditions
     if not clauses:
@@ -54,60 +54,51 @@ def davis_putnam(clauses, assignments={}, tried_assignments=None):
     if any(len(clause) == 0 for clause in clauses):
         print("Empty clause found, no solution possible.")
         return False, {}
-
+    
+    if current_call >= call_limit: # limit the number of recursive calls incase base checks fails
+        return False, {}
+    
+    current_call+=1
     # check for unit clauses
     unit_clauses = find_unit_clauses(clauses)
     for literal in unit_clauses:
-        print(f"Applying unit clause assignment for literal {literal}")
         if abs(literal) not in assignments:
             assignments[abs(literal)] = True if literal > 0 else False
             clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
             if not clauses:
-                print("Solution found after applying unit clause assignments.")
                 return True, assignments
             if any(len(clause) == 0 for clause in clauses):
-                print("Contradiction found after applying unit clause assignments.")
                 return False, {}
-    print(f"Clauses after unit clause assignment: {clauses}")
 
     # check for pure literals
     pure_literals = find_pure_literals(clauses)
-    print(f"Checking for pure literals. Current assignments: {assignments}")
+    #print(f"Checking for pure literals. Current assignments: {assignments}")
     for literal in pure_literals:
         if abs(literal) not in assignments:
-            print(f"Assigning pure literal {literal}")
             assignments[abs(literal)] = True if literal > 0 else False
             clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
             if not clauses:
-                print("Solution found after applying pure literal assignments.")
                 return True, assignments
             if any(len(clause) == 0 for clause in clauses):
-                print("Contradiction found after applying pure literal assignments.")
                 return False, {}
 
     # standard DPLL
     if clauses:
         literal = select_literal(clauses, assignments)
         for value in [True, False]:
-            print(f"Trying assignment {literal} = {value}")
-            print(f'tried_assignments: {tried_assignments}')
-            if (literal, value) in tried_assignments:
-                print(f'repeating assignment {literal} = {value}')
+            if (literal, value) in tried_assignments: # keep a tried_assignment to skip assignments that have already been tried
                 continue
             new_assignments = assignments.copy()
             new_assignments[literal] = value
             new_clauses = apply_assignment(clauses, literal, value)
             if any(len(clause) == 0 for clause in new_clauses):
-                print(f"Contradiction found with assignment {literal} = {value}, backtracking.")
                 continue
-            new_tried_assignments = tried_assignments.copy()  # Copy tried_assignments for the recursive call
+            new_tried_assignments = tried_assignments.copy()  # copy tried_assignments for the recursive call
             new_tried_assignments.add((literal, value))
-            result, final_assignments = davis_putnam(new_clauses, new_assignments, new_tried_assignments)
+            result, final_assignments = davis_putnam(new_clauses, new_assignments, new_tried_assignments, call_limit, current_call)
             if result:
-                print("Solution found in deeper recursion.")
                 return True, final_assignments
 
-    print("Exhausted all options, no solution found.")
     return False, {}
 
 
@@ -160,17 +151,14 @@ def arbitrary_assign(solution_assignments, legends):
     """Fills in any missing assignments based on legends."""
     for atom in legends.keys():
         if atom not in solution_assignments:
-            # If missing, assign it True (T)
             solution_assignments[atom] = 'T'
 
 
 def solve_sat_from_file(input_filename, output_filename):
     clauses, all_atoms, legends = parse_input(input_filename)
-    solution_exists, solution_assignments = davis_putnam(clauses)
+    solution_exists, solution_assignments = davis_putnam(clauses,  call_limit=int(math.sqrt(len(legends))))
     if solution_exists:
         arbitrary_assign(solution_assignments, legends)
-        print(f'Solution Exists: {solution_exists}')
-
     write_output(output_filename, solution_assignments if solution_exists else None, legends)
 
 
