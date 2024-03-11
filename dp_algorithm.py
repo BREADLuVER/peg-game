@@ -3,19 +3,22 @@ def parse_input(input_filename):
         content = file.read()
     separator_index = content.find('\n0\n')
 
+    # Initialize legend_part as an empty string
+    legend_part = ''
+
     # Split the content into clauses and legends
     if separator_index != -1:
         clause_part, legend_part = content.split('\n0\n')
         clause_lines = clause_part.strip().splitlines()
-        legend_lines = legend_part.strip().splitlines()
     else:
         clause_lines = content.strip().splitlines()
-        legend_lines = []
 
-    clauses = [list(map(int, line.split())) for line in clause_lines if line.strip()]
-    all_atoms = set(abs(lit) for clause in clauses for lit in clause)
+    # Remove '0's from clauses
+    clauses = [list(map(int, line.split())) for line in clause_lines if line.strip() and line != '0']
+    all_atoms = set(abs(lit) for clause in clauses for lit in clause if lit != 0)
     legend_lines = legend_part.strip().splitlines()
-    legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines}
+    legends = {int(line.split()[0]): ' '.join(line.split()[1:]) for line in legend_lines if line.strip() and line.split()[0] != '0'}
+    print(clauses, all_atoms, legends)
     return clauses, all_atoms, legends
 
 
@@ -39,53 +42,84 @@ def find_pure_literals(clauses):
     return pure_literals
 
 
-def davis_putnam(clauses, assignments={}, tried_assignments=set()):
+def davis_putnam(clauses, assignments={}, tried_assignments=None, previous_states = None):
+    if tried_assignments is None:
+        tried_assignments = set()
+    if previous_states is None:
+        previous_states = set()
+
+    current_state = (frozenset(tuple(clause) for clause in clauses), frozenset(assignments.items()))
+    if current_state in previous_states:
+        print("Detected cycling without progress, terminating search.")
+        return False, {}
+    else:
+        previous_states.add(current_state)
+
+    print(f"Starting DPLL with {len(clauses)} clauses and assignments: {assignments}")
+
     # base conditions
     if not clauses:
+        print("Solution found with no clauses left.")
         return True, assignments
     if any(len(clause) == 0 for clause in clauses):
+        print("Empty clause found, no solution possible.")
         return False, {}
 
     # check for unit clauses
     unit_clauses = find_unit_clauses(clauses)
     for literal in unit_clauses:
+        print(f"Applying unit clause assignment for literal {literal}")
         if abs(literal) not in assignments:
             assignments[abs(literal)] = True if literal > 0 else False
-            # apply the unit clause assignment
             clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])                       
-            # Re-check base conditions after applying unit clause assignments
             if not clauses:
+                print("Solution found after applying unit clause assignments.")
                 return True, assignments
             if any(len(clause) == 0 for clause in clauses):
+                print("Contradiction found after applying unit clause assignments.")
                 return False, {}
+    print(f"Clauses after unit clause assignment: {clauses}")
 
     # check for pure literals
     pure_literals = find_pure_literals(clauses)
+    print(f"Checking for pure literals. Current assignments: {assignments}")
     for literal in pure_literals:
-        if abs(literal) not in assignments: # check if literal is already assigned
-            assignments[abs(literal)] = True if literal > 0 else False # assign the pure literal
+        if abs(literal) not in assignments:
+            print(f"Assigning pure literal {literal}")
+            assignments[abs(literal)] = True if literal > 0 else False
             clauses = apply_assignment(clauses, abs(literal), assignments[abs(literal)])
-            # check base conditions after applying pure literal assignments
             if not clauses:
+                print("Solution found after applying pure literal assignments.")
                 return True, assignments
             if any(len(clause) == 0 for clause in clauses):
+                print("Contradiction found after applying pure literal assignments.")
                 return False, {}
 
-    # standard DPLLS
-    if clauses:  # Ensure clauses are still present
+    # standard DPLL
+    if clauses:
         literal = select_literal(clauses, assignments)
         for value in [True, False]:
+            print(f"Trying assignment {literal} = {value}")
+            print(f'tried_assignments: {tried_assignments}')
             if (literal, value) in tried_assignments:
+                print(f'repeating assignment {literal} = {value}')
                 continue
             new_assignments = assignments.copy()
             new_assignments[literal] = value
             new_clauses = apply_assignment(clauses, literal, value)
-            tried_assignments.add((literal, value))
-            result, final_assignments = davis_putnam(new_clauses, new_assignments, tried_assignments)
+            if any(len(clause) == 0 for clause in new_clauses):
+                print(f"Contradiction found with assignment {literal} = {value}, backtracking.")
+                continue
+            new_tried_assignments = tried_assignments.copy()
+            new_tried_assignments.add((literal, value))
+            result, final_assignments = davis_putnam(new_clauses, new_assignments, new_tried_assignments, previous_states)
             if result:
+                print("Solution found in deeper recursion.")
                 return True, final_assignments
 
+    print("Exhausted all options, no solution found.")
     return False, {}
+
 
 
 def select_literal(clauses, assignments):
@@ -124,12 +158,17 @@ def get_direct_resolution_value(clauses, literal):
 
 def apply_assignment(clauses, literal, value):
     """simplifies clauses based on a given assignment."""
+    print(f"Applying assignment: literal {literal} = {'True' if value else 'False'}")  # Debug line to show the assignment being applied
     new_clauses = []
     for clause in clauses:
         if (literal in clause and value) or (-literal in clause and not value):
-            continue  # Clause is satisfied
+            print(f"Clause {clause} is satisfied by the assignment and will be removed.")  # Debug line for satisfied clauses
+            continue  # Clause is satisfied, so it is removed from the list
         new_clause = [lit for lit in clause if abs(lit) != literal]
+        if len(new_clause) != len(clause):
+            print(f"Clause {clause} simplified to {new_clause} by removing literal {literal}.")  # Debug line for clause simplification
         new_clauses.append(new_clause)
+    print(f"New set of clauses after applying the assignment: {new_clauses}")  # Debug line to show the new set of clauses
     return new_clauses
 
 def arbitrary_assign(solution_assignments, legends):
@@ -165,3 +204,4 @@ def write_output(output_filename, solution, legends):
 input_filename = 'front_end_output.txt'
 output_filename = 'dp_output.txt'
 solve_sat_from_file(input_filename, output_filename)
+
